@@ -1,6 +1,8 @@
 import React from 'react';
 import { useAuth } from '../context/authContext';
 import { Navigate } from 'react-router-dom'; // Use Navigate instead of Redirect
+import VideoTopPick from '../components/VideoTopPick';
+import ArticlesTopPick from '../components/ArticlesTopPick';
 
 const Home: React.FC = () => {
   const { user, logout } = useAuth();
@@ -10,17 +12,25 @@ const Home: React.FC = () => {
     return <Navigate to="/login" />; // Redirect using Navigate instead of Redirect
   }
 
+  // Get today's date in the format: Monday, October 23, 2024
+  const todayDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
   return (
     <div>
-      <h1>Welcome to Your Dashboard</h1>
-      <p>Welcome, {user.username}! You are logged in as a {user.role}.</p>
-
       <div>
-        <button onClick={logout}>Logout</button>
-      </div>
 
-      <p>Here is your personalized content based on your role and preferences.</p>
-      {/* You can add more dynamic content here depending on user role, etc. */}
+        <h1 className=' text-3xl font-medium'>Hi, {user?.first_name}!</h1>
+        <p className=" text-sm">{todayDate}</p>
+
+      </div>
+     
+     <VideoTopPick />
+     <ArticlesTopPick />
     </div>
   );
 };
