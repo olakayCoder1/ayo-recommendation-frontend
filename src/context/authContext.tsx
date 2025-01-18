@@ -94,7 +94,6 @@ export const AuthProvider: React.FC = ({ children }) => {
         path: `/auth/login`,
         body: request_data,
       });
-      console.log(data)
       localStorage.setItem('tokens', JSON.stringify(data?.data?.tokens));
       setUser(data?.data?.user)
     } catch (error) {
@@ -150,7 +149,7 @@ export const AuthProvider: React.FC = ({ children }) => {
             theme: "colored",
             });
     }
-}
+  }
 
 
   const deleteUserFromLocalStorage = () => {
@@ -159,9 +158,6 @@ export const AuthProvider: React.FC = ({ children }) => {
     window.location.href = '/auth/signin';
   };
 
-  
-
-  
   
   async function fetchWithAuth({ method = 'GET', path, queryParams = {}, body = null , isformData = false}) {
       const accessToken = authToken?.access
@@ -242,9 +238,13 @@ export const AuthProvider: React.FC = ({ children }) => {
         }
       }
 
-    
+      console.log(response.ok)
+      console.log(response.status)
       // If the response is not successful, throw an error
       if (!response.ok) {
+        if(response.status === 201 || response.status === 204){
+          return response.json();
+        }
         // add 400 error handling
         if(response.status === 400){
           const errorData = await response.json();
@@ -260,16 +260,19 @@ export const AuthProvider: React.FC = ({ children }) => {
     
       // Return the response JSON data
       return response.json();
-    }
+    
+  }
 
 
   
 
   // Logout function
-  const logout = () => {
-    localStorage.removeItem('authToken');
+const logout = () => {
+    localStorage.removeItem('tokens');
     setUser(null);
-  };
+    displayNotification('success', 'Logged out successfully');
+    window.location.reload();
+};
 
   // Check if user has required role
   const checkRole = (requiredRole: string) => {
@@ -279,7 +282,7 @@ export const AuthProvider: React.FC = ({ children }) => {
     return false;
   };
 
-  const value = { user, login, logout, checkRole };
+  const value = { user, login, logout, checkRole, fetchWithAuth,displayNotification,setUser };
 
   return (
     <AuthContext.Provider value={value}>

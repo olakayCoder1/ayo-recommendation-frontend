@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import Layout from './Layout';
 
 interface RoleBasedRouteProps {
   element: JSX.Element;
@@ -14,7 +15,7 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({ element, requiredRole }
     return <Navigate to="/unauthorized" />;
   }
 
-  return element; // Render the component if user has the required role
+  return <Layout>{element}</Layout>;; 
 };
 
 export default RoleBasedRoute;

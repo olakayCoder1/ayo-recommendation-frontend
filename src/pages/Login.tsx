@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/authContext';
 import { useNavigate } from 'react-router-dom';  // Import useNavigate
+import InputField from '../components/InputField';
 
 const Login: React.FC = () => {
   const { login } = useAuth();
@@ -10,12 +11,9 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Call login and handle redirection on success
     try {
       await login(username, password);
-      // If login is successful, navigate to the home page or any other page
-      navigate('/home');  // Redirect to the /home page
+      navigate('/home');
     } catch (error) {
       console.error('Login failed:', error);
     }
@@ -23,28 +21,42 @@ const Login: React.FC = () => {
 
   return (
     <div>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="username">Username</label>
-          <input
-            type="text"
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
+      <div className="container mx-auto my-auto p-6 bg-white shadow-lg rounded-lg w-full sm:w-2/3 max-w-lg">
+      <h2 className="text-3xl font-bold text-center mb-6 text-gray-800">Login</h2>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* First Name and Last Name */}
+          <div className="grid gap-2 grid-cols-1 ">
+            <InputField
+              type="text"
+              label="Email/Username"
+              name="username"
+              placeholder=''
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+            <InputField
+              type="password"
+              label="Password"
+              name="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+          {/* Submit Button */}
+          <div>
+            <button type="submit" className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition duration-200">
+            Login
+            </button>
         </div>
-        <div>
-          <label htmlFor="password">Password</label>
-          <input
-            type="password"
-            id="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+        {/* add a link to the registration page */}
+        <div className="text-center text-gray-600 text-sm">
+          Don't have an account? <a href="/register" className="text-indigo-600">Register</a>
         </div>
-        <button type="submit">Login</button>
       </form>
+      </div>
+      
     </div>
   );
 };

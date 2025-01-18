@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import Layout from './Layout';
 
 interface PrivateRouteProps {
   element: JSX.Element;
@@ -13,7 +14,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ element }) => {
     return <Navigate to="/login" />;
   }
 
-  return element; // Render the component if user is logged in
+  return <Layout>{element}</Layout>;; // Render the component if user is logged in
 };
 
 export default PrivateRoute;
