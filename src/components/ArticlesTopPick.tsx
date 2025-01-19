@@ -24,6 +24,7 @@ const ArticlesTopPick:React.FC = () => {
                     <Card />
                     <Card />
                     <Card />
+                    <Card />
                 </div>
             </div>
         </>

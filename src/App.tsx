@@ -13,6 +13,7 @@ import Unauthorized from './pages/Unauthorized';
 import { Navigate } from 'react-router-dom'; // Correct import for Navigate
 import UnauthenticatedRoute from './components/UnauthenticatedRoute';
 import Register from './pages/Register';
+import Video from './pages/videos/Video';
 
 function App() {
   return (
@@ -28,6 +29,8 @@ function App() {
           
           {/* Private Route for Home */}
           <Route path="/home/*" element={<PrivateRoute element={<Home />} />} />
+          <Route path="/videos/*" element={<PrivateRoute element={<Video />} />} />
+          <Route path="/settings/*" element={<PrivateRoute element={<Home />} />} />
           
 
           <Route path="/admin/*" element={<RoleBasedRoute element={<AdminPage />} requiredRole="admin" />} />
