@@ -14,6 +14,8 @@ import { Navigate } from 'react-router-dom'; // Correct import for Navigate
 import UnauthenticatedRoute from './components/UnauthenticatedRoute';
 import Register from './pages/Register';
 import Video from './pages/videos/Video';
+import AddQuizQuestionFormPage from './pages/AddQuizQuestionFormPage';
+import ArticleDetail from './pages/articles/ArticleDetail';
 
 function App() {
   return (
@@ -28,9 +30,12 @@ function App() {
           <Route path="/register" element={<UnauthenticatedRoute element={<Register />} />} />
           
           {/* Private Route for Home */}
+          <Route path="/quiz/new/*" element={<PrivateRoute element={<AddQuizQuestionFormPage />} />} />
           <Route path="/home/*" element={<PrivateRoute element={<Home />} />} />
           <Route path="/videos/*" element={<PrivateRoute element={<Video />} />} />
           <Route path="/settings/*" element={<PrivateRoute element={<Home />} />} />
+          <Route path="/article/:id" element={<PrivateRoute element={<ArticleDetail />} />} />
+          
           
 
           <Route path="/admin/*" element={<RoleBasedRoute element={<AdminPage />} requiredRole="admin" />} />

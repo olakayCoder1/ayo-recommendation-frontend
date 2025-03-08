@@ -7,11 +7,6 @@ import ArticlesTopPick from '../components/ArticlesTopPick';
 const Home: React.FC = () => {
   const { user, logout } = useAuth();
 
-  if (!user) {
-    // If there's no user (not logged in), redirect to the login page
-    return <Navigate to="/login" />; // Redirect using Navigate instead of Redirect
-  }
-
   // Get today's date in the format: Monday, October 23, 2024
   const todayDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',

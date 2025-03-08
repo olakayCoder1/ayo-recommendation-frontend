@@ -18,51 +18,42 @@ export const AuthProvider: React.FC = ({ children }) => {
   const [ authToken , setAuthToken ] = React.useState(()=> JSON.parse(localStorage.getItem('tokens'))|| null);
   const [loading, setLoading] = useState(true);
 
-  // Check if there's an auth token in localStorage and set the user on page load
-  useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      try {
-        const decoded: any = jwtDecode(token); // Decode the JWT token
-        console.log(decoded)
-        // Check if token has expired (optional, depending on your logic)
-        if (decoded.exp * 1000 < Date.now()) {
-          localStorage.removeItem('authToken');
-        } else {
-          setUser(decoded); // If token is valid, set user state
-        }
-      } catch (error) {
-        console.error('Error decoding token:', error);
-      }
-    }
-    setLoading(false);
-  }, []); // Empty dependency array ensures this runs only once on mount
-
-
   // Fetch user profile after the token is available or on token update
   const fetchUserProfile = async () => {
     if (!authToken || !authToken.access) return;
+    
+    try{
+        const data = await fetchWithAuth({
+          method: 'GET',
+          path: `/account/`,
+        });
 
-    try {
-      const response = await fetch(`${BACKEND_URL}/account/`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken.access}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
         console.log(data)
         setUser(data?.data);
-      } else {
-        displayNotification('error', 'Failed to fetch user profile.');
-      }
-    } catch (error) {
+      }catch (error) {
       console.error('Error fetching user profile:', error);
-      displayNotification('error', 'An error occurred while fetching the profile.');
     }
+
+    // try {
+    //   const response = await fetch(`${BACKEND_URL}/account/`, {
+    //     method: 'GET',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //       'Authorization': `Bearer ${authToken.access}`,
+    //     },
+    //   });
+
+    //   if (response.ok) {
+    //     const data = await response.json();
+    //     console.log(data)
+    //     setUser(data?.data);
+    //   } else {
+    //     displayNotification('error', 'Failed to fetch user profile.');
+    //   }
+    // } catch (error) {
+    //   console.error('Error fetching user profile:', error);
+    //   displayNotification('error', 'An error occurred while fetching the profile.');
+    // }
   };
 
   useEffect(() => {
@@ -75,11 +66,11 @@ export const AuthProvider: React.FC = ({ children }) => {
   }, []); // This runs once on page load to check the token
 
 
-  useEffect(() => {
-    if (authToken && !user) {
-      fetchUserProfile();  // Fetch updated user profile if user exists but no profile is set
-    }
-  }, [authToken]);
+  // useEffect(() => {
+  //   if (authToken && !user) {
+  //     fetchUserProfile();  // Fetch updated user profile if user exists but no profile is set
+  //   }
+  // }, [authToken]);
 
 
   // Mimicking the login API call to check username and assign role
@@ -155,7 +146,7 @@ export const AuthProvider: React.FC = ({ children }) => {
   const deleteUserFromLocalStorage = () => {
     localStorage.removeItem('user');    
     localStorage.removeItem('tokens');    
-    window.location.href = '/auth/signin';
+    window.location.href = '/login';
   };
 
   
@@ -282,7 +273,7 @@ const logout = () => {
     return false;
   };
 
-  const value = { user, login, logout, checkRole, fetchWithAuth,displayNotification,setUser };
+  const value = { user,authToken, login, logout, checkRole, fetchWithAuth,displayNotification,setUser };
 
   return (
     <AuthContext.Provider value={value}>
