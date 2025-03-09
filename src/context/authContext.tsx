@@ -1,8 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
-import { jwtDecode  } from 'jwt-decode'; 
 
 const AuthContext = createContext<any>(null);
 
@@ -33,27 +31,6 @@ export const AuthProvider: React.FC = ({ children }) => {
       }catch (error) {
       console.error('Error fetching user profile:', error);
     }
-
-    // try {
-    //   const response = await fetch(`${BACKEND_URL}/account/`, {
-    //     method: 'GET',
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //       'Authorization': `Bearer ${authToken.access}`,
-    //     },
-    //   });
-
-    //   if (response.ok) {
-    //     const data = await response.json();
-    //     console.log(data)
-    //     setUser(data?.data);
-    //   } else {
-    //     displayNotification('error', 'Failed to fetch user profile.');
-    //   }
-    // } catch (error) {
-    //   console.error('Error fetching user profile:', error);
-    //   displayNotification('error', 'An error occurred while fetching the profile.');
-    // }
   };
 
   useEffect(() => {
@@ -64,13 +41,6 @@ export const AuthProvider: React.FC = ({ children }) => {
     }
     setLoading(false);
   }, []); // This runs once on page load to check the token
-
-
-  // useEffect(() => {
-  //   if (authToken && !user) {
-  //     fetchUserProfile();  // Fetch updated user profile if user exists but no profile is set
-  //   }
-  // }, [authToken]);
 
 
   // Mimicking the login API call to check username and assign role
@@ -228,9 +198,6 @@ export const AuthProvider: React.FC = ({ children }) => {
           
         }
       }
-
-      console.log(response.ok)
-      console.log(response.status)
       // If the response is not successful, throw an error
       if (!response.ok) {
         if(response.status === 201 || response.status === 204){
@@ -254,16 +221,13 @@ export const AuthProvider: React.FC = ({ children }) => {
     
   }
 
-
-  
-
   // Logout function
-const logout = () => {
+  const logout = () => {
     localStorage.removeItem('tokens');
     setUser(null);
     displayNotification('success', 'Logged out successfully');
     window.location.reload();
-};
+  };
 
   // Check if user has required role
   const checkRole = (requiredRole: string) => {

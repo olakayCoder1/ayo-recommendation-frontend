@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/authContext';
-import { useNavigate } from 'react-router-dom';  // Import useNavigate
+import { Link, useNavigate } from 'react-router-dom';  // Import useNavigate
 import InputField from '../components/InputField';
 
 const Login: React.FC = () => {
@@ -39,6 +39,7 @@ const Login: React.FC = () => {
               type="password"
               label="Password"
               name="password"
+              placeholder=''
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -52,7 +53,7 @@ const Login: React.FC = () => {
         </div>
         {/* add a link to the registration page */}
         <div className="text-center text-gray-600 text-sm">
-          Don't have an account? <a href="/register" className="text-indigo-600">Register</a>
+          Don't have an account? <Link to="/register" className="text-indigo-600">Register</Link>
         </div>
       </form>
       </div>

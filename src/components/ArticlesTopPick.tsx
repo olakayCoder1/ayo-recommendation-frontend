@@ -48,7 +48,7 @@ const ArticlesTopPick: React.FC = () => {
         // Fetching the data from the API
         const fetchArticles = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8000/api/v1/articles?page_size=40');
+                const response = await fetch('http://127.0.0.1:8000/api/v1/articles?page_size=5');
                 const data = await response.json();
 
                 if (data.status) {

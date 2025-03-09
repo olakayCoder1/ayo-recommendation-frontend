@@ -1,5 +1,4 @@
-import { useContext, useState, useEffect } from 'react';
-import Breadcrumb from '../components/Breadcrumbs/Breadcrumb';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/authContext';
 
 export default function AddQuizQuestionFormPage() {

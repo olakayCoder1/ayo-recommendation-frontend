@@ -16,11 +16,20 @@ interface Article {
   summary: string;
 }
 
+interface Feedback {
+  helpful: 'yes' | 'no' | null;
+  moreContent: 'yes' | 'no' | null;
+}
+
 const ArticleDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>(); // { id: string } defines the shape of the params
 
   // State to hold the article data
   const [article, setArticle] = useState<Article | null>(null);
+
+  // State for feedback modal visibility and feedback data
+  const [modalVisible, setModalVisible] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback>({ helpful: null, moreContent: null });
 
   // Fetch the article from the backend
   useEffect(() => {
@@ -38,6 +47,16 @@ const ArticleDetail: React.FC = () => {
     fetchArticle();
   }, [id]);
 
+  // Automatically trigger the feedback modal after 1 minute (60000ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setModalVisible(true);
+    }, 30000); // 30 seconds
+
+    // Cleanup timeout if the component is unmounted or user navigates away
+    return () => clearTimeout(timer);
+  }, []);
+
   if (!article) {
     return <div className="text-center text-xl text-gray-500">Loading...</div>;
   }
@@ -49,6 +68,13 @@ const ArticleDetail: React.FC = () => {
       <br />
     </span>
   )) : '';
+
+  // Handle the feedback submission
+  const handleFeedbackSubmit = () => {
+    console.log('Feedback submitted:', feedback);
+    // Here, you can send the feedback data to your backend.
+    setModalVisible(false); // Close the modal after submitting
+  };
 
   return (
     <div className="container mx-auto p-6 md:px-12 lg:px-24">
@@ -94,6 +120,69 @@ const ArticleDetail: React.FC = () => {
           </a>
         </div>
       </div>
+
+      {/* Feedback Modal */}
+      {modalVisible && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg shadow-md w-96">
+            <h3 className="text-xl font-semibold mb-4">Feedback</h3>
+
+            {/* Was this article helpful? */}
+            <div className="mb-4">
+              <p className="font-medium">Was this article helpful?</p>
+              <div className="flex gap-4 mt-2">
+                <button
+                  className={`px-4 py-2 border rounded-md ${feedback.helpful === 'yes' ? 'bg-blue-500 text-white' : ''}`}
+                  onClick={() => setFeedback({ ...feedback, helpful: 'yes' })}
+                >
+                  Yes
+                </button>
+                <button
+                  className={`px-4 py-2 border rounded-md ${feedback.helpful === 'no' ? 'bg-red-500 text-white' : ''}`}
+                  onClick={() => setFeedback({ ...feedback, helpful: 'no' })}
+                >
+                  No
+                </button>
+              </div>
+            </div>
+
+            {/* Would you like more content like this? */}
+            <div className="mb-4">
+              <p className="font-medium">Would you like more content like this?</p>
+              <div className="flex gap-4 mt-2">
+                <button
+                  className={`px-4 py-2 border rounded-md ${feedback.moreContent === 'yes' ? 'bg-blue-500 text-white' : ''}`}
+                  onClick={() => setFeedback({ ...feedback, moreContent: 'yes' })}
+                >
+                  Yes
+                </button>
+                <button
+                  className={`px-4 py-2 border rounded-md ${feedback.moreContent === 'no' ? 'bg-red-500 text-white' : ''}`}
+                  onClick={() => setFeedback({ ...feedback, moreContent: 'no' })}
+                >
+                  No
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-between">
+              <button
+                className="px-4 py-2 bg-gray-300 rounded-md"
+                onClick={() => setModalVisible(false)}
+              >
+                Close
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-500 text-white rounded-md"
+                onClick={handleFeedbackSubmit}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

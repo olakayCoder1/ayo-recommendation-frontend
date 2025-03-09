@@ -1,21 +1,21 @@
 
-import React from 'react';
-import './index.css'; 
+import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom'; // Correct import
 import { ToastContainer } from 'react-toastify';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // Correct import
-import { AuthProvider, useAuth } from './context/authContext';  // Import useAuth
 import PrivateRoute from './components/PrivateRoute';
 import RoleBasedRoute from './components/RoleBasedRoute';
+import UnauthenticatedRoute from './components/UnauthenticatedRoute';
+import { AuthProvider } from './context/authContext'; // Import useAuth
+import './index.css';
+import AddQuizQuestionFormPage from './pages/AddQuizQuestionFormPage';
+import AdminPage from './pages/AdminPage';
+import ArticleDetail from './pages/articles/ArticleDetail';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import AdminPage from './pages/AdminPage';
-import Unauthorized from './pages/Unauthorized';
-import { Navigate } from 'react-router-dom'; // Correct import for Navigate
-import UnauthenticatedRoute from './components/UnauthenticatedRoute';
+import Quiz from './pages/quiz/Quiz';
 import Register from './pages/Register';
+import Settings from './pages/Settings';
+import Unauthorized from './pages/Unauthorized';
 import Video from './pages/videos/Video';
-import AddQuizQuestionFormPage from './pages/AddQuizQuestionFormPage';
-import ArticleDetail from './pages/articles/ArticleDetail';
 
 function App() {
   return (
@@ -33,8 +33,9 @@ function App() {
           <Route path="/quiz/new/*" element={<PrivateRoute element={<AddQuizQuestionFormPage />} />} />
           <Route path="/home/*" element={<PrivateRoute element={<Home />} />} />
           <Route path="/videos/*" element={<PrivateRoute element={<Video />} />} />
-          <Route path="/settings/*" element={<PrivateRoute element={<Home />} />} />
+          <Route path="/settings/*" element={<PrivateRoute element={<Settings />} />} />
           <Route path="/article/:id" element={<PrivateRoute element={<ArticleDetail />} />} />
+          <Route path="/quiz" element={<PrivateRoute element={<Quiz />} />} />
           
           
 
@@ -44,7 +45,7 @@ function App() {
           <Route path="/unauthorized" element={<Unauthorized />} />
           
           {/* Redirect to home */}
-          {/* <Route path="/" element={<Navigate to="/home" />} /> */}
+          <Route path="/" element={<Navigate to="/home" />} />
 
         </Routes>
       </Router>

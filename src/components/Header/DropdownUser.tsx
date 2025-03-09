@@ -23,7 +23,7 @@ const DropdownUser = () => {
         </span>
 
         <span className="h-12 w-12 rounded-full">
-          <img src={user?.profile_image} alt="User" className="h-12 w-12 rounded-full" />
+          <img src={user?.profile_image || 'https://avatars.githubusercontent.com/u/95700260?s=400&u=8a038fc4fa00588887195b84026eb610c9213b4f&v=4'} alt="User" className="h-12 w-12 rounded-full" />
         </span>
 
       </Link>
@@ -31,9 +31,9 @@ const DropdownUser = () => {
       {/* <!-- Dropdown Start --> */}
       {dropdownOpen && (
         <div
-          className={`absolute right-0 mt-4 flex w-62.5 flex-col rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark`}
+          className={`absolute right-0 mt-4 z-50 flex w-62.5 flex-col rounded-sm border border-stroke bg-white shadow-default `}
         >
-          <ul className="flex flex-col gap-5 border-b border-stroke px-6 py-7.5 dark:border-strokedark">
+          <ul className="flex flex-col gap-5 border-b border-stroke px-6 py-7.5 ">
             
             <li>
               <Link
@@ -57,7 +57,7 @@ const DropdownUser = () => {
                     fill=""
                   />
                 </svg>
-                Account Settings
+                Settings
               </Link>
             </li>
           </ul>

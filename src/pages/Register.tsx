@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import InputField from '../components/InputField'; // Import the reusable InputField component
 
@@ -64,6 +64,7 @@ const Register: React.FC = () => {
             type="text"
             label="First Name"
             name="first_name"
+            placeholder=''
             value={formData.first_name}
             onChange={handleChange}
             required
@@ -72,6 +73,7 @@ const Register: React.FC = () => {
             type="text"
             label="Last Name"
             name="last_name"
+            placeholder=''
             value={formData.last_name}
             onChange={handleChange}
             required
@@ -84,6 +86,7 @@ const Register: React.FC = () => {
             type="email"
             label="Email"
             name="email"
+            placeholder=''
             value={formData.email}
             onChange={handleChange}
             required
@@ -92,6 +95,7 @@ const Register: React.FC = () => {
             type="tel"
             label="Phone Number"
             name="phone_number"
+            placeholder=''
             value={formData.phone_number}
             onChange={handleChange}
             required
@@ -104,6 +108,7 @@ const Register: React.FC = () => {
             type="select"
             label="Current Year Level"
             name="current_year_level"
+            placeholder=''
             value={formData.current_year_level}
             onChange={handleChange}
             required
@@ -113,6 +118,7 @@ const Register: React.FC = () => {
             type="select"
             label="Previous Year Performance"
             name="previous_year_performance"
+            placeholder=''
             value={formData.previous_year_performance}
             onChange={handleChange}
             required
@@ -126,6 +132,7 @@ const Register: React.FC = () => {
             type="select"
             label="Preferred Content"
             name="preferred_content"
+            placeholder=''
             value={formData.preferred_content}
             onChange={handleChange}
             required
@@ -135,6 +142,7 @@ const Register: React.FC = () => {
             type="select"
             label="Study Preference"
             name="study_preference"
+            placeholder=''
             value={formData.study_preference}
             onChange={handleChange}
             required
@@ -149,6 +157,7 @@ const Register: React.FC = () => {
               type={passwordVisible ? 'text' : 'password'} // Conditionally toggle between text and password
               label="Password"
               name="password"
+              placeholder=''
               required
               value={formData.password}
               onChange={handleChange}
@@ -160,6 +169,7 @@ const Register: React.FC = () => {
               type={passwordVisible ? 'text' : 'password'} // Conditionally toggle between text and password
               label="Confirm Password"
               name="confirmPassword"
+              placeholder=''
               required
               value={formData.confirmPassword}
               onChange={handleChange}
@@ -190,9 +200,9 @@ const Register: React.FC = () => {
         {/* Link to login page */}
         <div className="text-center text-gray-600 text-sm">
           Already have an account?{' '}
-          <a href="/login" className="text-indigo-600">
+          <Link to="/login" className="text-indigo-600">
             Login
-          </a>
+          </Link>
         </div>
       </form>
     </div>
