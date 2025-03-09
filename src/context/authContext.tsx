@@ -27,9 +27,9 @@ export const useAuth = (): AuthContextType => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // const BACKEND_URL = 'http://127.0.0.1:8000/api/v1';
+  const BACKEND_URL = 'http://127.0.0.1:8000/api/v1';
 
-  const BACKEND_URL = 'https://ayo-recommendation-backend.onrender.com/api/v1';
+  // const BACKEND_URL = 'https://ayo-recommendation-backend.onrender.com/api/v1';
 
   const [user, setUser] = useState<any>(null);
   const [authToken, setAuthToken] = useState<any>(() => JSON.parse(localStorage.getItem('tokens') || 'null'));
@@ -75,8 +75,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         path: `/auth/login`,
         body: request_data,
       });
+      setAuthToken(data?.data?.tokens);
       localStorage.setItem('tokens', JSON.stringify(data?.data?.tokens));
       setUser(data?.data?.user);
+      
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
@@ -242,7 +244,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('tokens');
     setUser(null);
     displayNotification('success', 'Logged out successfully');
-    window.location.reload();
+    window.location.pathname = '/'
   };
 
   // Check if user has required role

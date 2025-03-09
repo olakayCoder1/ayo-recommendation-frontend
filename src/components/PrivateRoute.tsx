@@ -15,7 +15,11 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ element }) => {
     return <Navigate to="/login" />;
   }
 
-  return <Layout>{element}</Layout>;; 
+  return <Layout>
+    <div className=' max-w-5xl mx-auto'>
+    {element}
+    </div>
+    </Layout>;; 
 };
 
 export default PrivateRoute;
