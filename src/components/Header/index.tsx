@@ -1,25 +1,20 @@
-import { Link, useNavigate } from 'react-router-dom';
-import DropdownUser from './DropdownUser';
-import DarkModeSwitcher from './DarkModeSwitcher';
-import { useAuth } from '../../context/authContext';
+// In src/components/Header/index.tsx:
+
+import { Link } from 'react-router-dom'; // Removed unnecessary imports
+import DropdownUser from './DropdownUser'; // Kept DropdownUser if you use it
+// Removed DarkModeSwitcher and useNavigate if not necessary.
 
 const Header = (props: {
   sidebarOpen: string | boolean | undefined;
   setSidebarOpen: (arg0: boolean) => void;
 }) => {
-
-  const {user} = useAuth();
-  const navigate = useNavigate(); 
-
-
-  
-
+  // Removed user and navigate since they're not being used
 
   return (
     <header className="sticky top-0 z-999 flex w-full bg-white drop-shadow-1 dark:bg-boxdark dark:drop-shadow-none border-b-2">
       <div className="flex flex-grow items-center justify-between px-4 py-4 shadow-2 md:px-6 2xl:px-11">
         <div className="flex items-center gap-2 sm:gap-4 lg:hidden">
-          {/* <!-- Hamburger Toggle BTN --> */}
+          {/* Hamburger Toggle BTN */}
           <button
             aria-controls="sidebar"
             onClick={(e) => {
@@ -60,7 +55,7 @@ const Header = (props: {
               </span>
             </span>
           </button>
-          {/* <!-- Hamburger Toggle BTN --> */}
+          {/* Hamburger Toggle BTN */}
 
           <Link className="block flex-shrink-0 lg:hidden" to="/">
             <img src='' alt="Logo" />
@@ -73,16 +68,14 @@ const Header = (props: {
 
         <div className="flex items-center gap-3 2xsm:gap-7">
           <ul className="flex items-center gap-2 2xsm:gap-4">
-         
+            {/* Any additional user items can go here */}
           </ul>
 
-          {/* <!-- User Area --> */}
+          {/* User Area */}
           <DropdownUser />
-          {/* <!-- User Area --> */}
+          {/* User Area */}
         </div>
       </div>
-
-      
     </header>
   );
 };
