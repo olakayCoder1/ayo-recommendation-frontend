@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 
 interface UserProfile {
@@ -16,7 +15,6 @@ interface PasswordReset {
 
 const Settings: React.FC = () => {
   const { fetchWithAuth, displayNotification, setUser, user } = useAuth();
-  const navigate = useNavigate();
 
   // User Profile State
   const [profile, setProfile] = useState<UserProfile>({
@@ -107,7 +105,7 @@ const Settings: React.FC = () => {
         path: '/account/change-password', 
         body: password,
       });
-
+      console.log(response)
       displayNotification('success', 'Password reset successful');
       setIsModalOpen(false);
     //   navigate('/home'); 

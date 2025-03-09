@@ -11,6 +11,7 @@ interface CardProps {
 
 // Card Component
 const Card: React.FC<CardProps> = ({ id, title, summary, hyper_link, image }) => {
+    console.log(hyper_link)
     return (
         <Link
             to={`/article/${id}`}
