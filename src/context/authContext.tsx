@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<any>(null);
   const [authToken, setAuthToken] = useState<any>(() => JSON.parse(localStorage.getItem('tokens') || 'null'));
   const [loading, setLoading] = useState(true);
-  const [globalLoading, setGlobalLoading] = useState<any>(true);
+  const [globalLoading, setGlobalLoading] = useState<any>(false);
   const [globalLoadingText, setGlobalLoadingText] = useState<any>('Loading....');
 
   // Fetch user profile after the token is available or on token update
