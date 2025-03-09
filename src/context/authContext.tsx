@@ -4,6 +4,10 @@ import { toast } from 'react-toastify';
 interface AuthContextType {
   user: any;
   authToken: any;
+  globalLoading: any;
+  setGlobalLoading: React.Dispatch<React.SetStateAction<any>>;
+  globalLoadingText: string;
+  setGlobalLoadingText: React.Dispatch<React.SetStateAction<any>>;
   login: (email: string, password: string) => void;
   logout: () => void;
   checkRole: (requiredRole: string) => boolean;
@@ -23,11 +27,15 @@ export const useAuth = (): AuthContextType => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const BACKEND_URL = 'http://127.0.0.1:8000/api/v1';
+  // const BACKEND_URL = 'http://127.0.0.1:8000/api/v1';
 
+  const BACKEND_URL = 'https://ayo-recommendation-backend.onrender.com';
+  
   const [user, setUser] = useState<any>(null);
   const [authToken, setAuthToken] = useState<any>(() => JSON.parse(localStorage.getItem('tokens') || 'null'));
   const [loading, setLoading] = useState(true);
+  const [globalLoading, setGlobalLoading] = useState<any>(true);
+  const [globalLoadingText, setGlobalLoadingText] = useState<any>('Loading....');
 
   // Fetch user profile after the token is available or on token update
   const fetchUserProfile = async () => {
@@ -254,6 +262,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchWithAuth,
     displayNotification,
     setUser,
+    globalLoading,
+    setGlobalLoading,
+    globalLoadingText,
+    setGlobalLoadingText,
   };
 
   return (

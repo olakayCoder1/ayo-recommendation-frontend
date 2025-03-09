@@ -4,7 +4,7 @@ import { useAuth } from '../context/authContext';
 import InputField from '../components/InputField'; // Import the reusable InputField component
 
 const Register: React.FC = () => {
-  const { fetchWithAuth, displayNotification, setUser } = useAuth(); // Assuming 'authToken' is provided from context
+  const { fetchWithAuth, displayNotification, setUser , setGlobalLoading, setGlobalLoadingText } = useAuth(); // Assuming 'authToken' is provided from context
   const navigate = useNavigate();
 
   // State to hold form data
@@ -37,6 +37,8 @@ const Register: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setGlobalLoading(true);
+      setGlobalLoadingText('Registering...');
       const response = await fetchWithAuth({
         method: 'POST',
         path: `/auth/register`, // Submit quiz answers
@@ -51,6 +53,8 @@ const Register: React.FC = () => {
       navigate('/home');
     } catch (error) {
       console.error('Error submitting quiz:', error);
+    }finally{
+      setGlobalLoading(false);
     }
   };
 

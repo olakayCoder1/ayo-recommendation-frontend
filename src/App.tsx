@@ -4,7 +4,7 @@ import { ToastContainer } from 'react-toastify';
 import PrivateRoute from './components/PrivateRoute';
 import RoleBasedRoute from './components/RoleBasedRoute';
 import UnauthenticatedRoute from './components/UnauthenticatedRoute';
-import { AuthProvider } from './context/authContext'; // Import useAuth
+import { useAuth } from './context/authContext'; // Import useAuth
 import './index.css';
 import AddQuizQuestionFormPage from './pages/AddQuizQuestionFormPage';
 import AdminPage from './pages/AdminPage';
@@ -16,11 +16,15 @@ import Register from './pages/Register';
 import Settings from './pages/Settings';
 import Unauthorized from './pages/Unauthorized';
 import Video from './pages/videos/Video';
+import Loader from './components/Loader';
 
 function App() {
+
+  const {globalLoading, globalLoadingText} = useAuth();
   return (
-    <AuthProvider>
+    <>
       <ToastContainer />
+      {globalLoading && <Loader text={globalLoadingText}/>}
       <Router>
         <Routes>
           {/* Define all your routes within the <Routes> component */}
@@ -49,7 +53,7 @@ function App() {
 
         </Routes>
       </Router>
-    </AuthProvider>
+    </>
   );
 }
 

@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';  // Import useNavigate
 import InputField from '../components/InputField';
 
 const Login: React.FC = () => {
-  const { login } = useAuth();
+  const { login, setGlobalLoading, setGlobalLoadingText } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();  // Initialize useNavigate
@@ -12,10 +12,15 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setGlobalLoading(true)
+      setGlobalLoadingText('Authenticating...')
       await login(username, password);
       navigate('/home');
     } catch (error) {
       console.error('Login failed:', error);
+    }finally{
+      setGlobalLoading(false)
+      
     }
   };
 
