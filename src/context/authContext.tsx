@@ -29,8 +29,8 @@ export const useAuth = (): AuthContextType => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // const BACKEND_URL = 'http://127.0.0.1:8000/api/v1';
 
-  const BACKEND_URL = 'https://ayo-recommendation-backend.onrender.com';
-  
+  const BACKEND_URL = 'https://ayo-recommendation-backend.onrender.com/api/v1';
+
   const [user, setUser] = useState<any>(null);
   const [authToken, setAuthToken] = useState<any>(() => JSON.parse(localStorage.getItem('tokens') || 'null'));
   const [loading, setLoading] = useState(true);
