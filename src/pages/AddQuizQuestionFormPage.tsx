@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/authContext';
 
+interface Course {
+    id: string;
+    title: string;
+}
+
+interface Question {
+    question_text: string;
+    answers: string[];
+    correctAnswer: string;
+}
+
 export default function AddQuizQuestionFormPage() {
     const { fetchWithAuth, displayNotification } = useAuth();
 
@@ -8,10 +19,10 @@ export default function AddQuizQuestionFormPage() {
     const [quizTitle, setQuizTitle] = useState('');
     const [quizDescription, setQuizDescription] = useState('');
     const [selectedCourse, setSelectedCourse] = useState('');
-    const [courses, setCourses] = useState([]); // To hold list of courses for selection
+    const [courses, setCourses] = useState<Course[]>([]); // To hold list of courses for selection
 
     // State for all questions
-    const [questions, setQuestions] = useState([{
+    const [questions, setQuestions] = useState<Question[]>([{
         question_text: '',
         answers: ['', '', '', ''],
         correctAnswer: ''
@@ -21,19 +32,19 @@ export default function AddQuizQuestionFormPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     async function fetchCourses() {
-        // try {
-        //     const data = await fetchWithAuth({
-        //         method: 'GET',
-        //         path: `/account/courses-without-quiz`,
-        //     });
+        try {
+            // const data = await fetchWithAuth({
+            //     method: 'GET',
+            //     path: `/account/courses-without-quiz`,
+            // });
 
-        //     // Filter courses to only include those with has_quiz: false
-        //     const filteredCourses = data?.data.filter(course => course.has_quiz === false);
-        //     setCourses(filteredCourses);
-        // } catch (error) {
-        //     console.error('Error fetching courses:', error);
-        //     displayNotification("error", "Failed to fetch courses.");
-        // }
+            // Filter courses to only include those with has_quiz: false
+            // const filteredCourses = data?.data.filter(course => course.has_quiz === false);
+            // setCourses(filteredCourses);
+        } catch (error) {
+            console.error('Error fetching courses:', error);
+            displayNotification("error", "Failed to fetch courses.");
+        }
     }
 
     // Fetch courses on component mount (assuming an API or context for available courses)
@@ -42,14 +53,14 @@ export default function AddQuizQuestionFormPage() {
     }, [displayNotification]);
 
     // Handle changes to individual question fields
-    const handleQuestionChange = (index, field, value) => {
+    const handleQuestionChange = (index: number, field: keyof Question, value: string) => {
         const updatedQuestions = [...questions];
         updatedQuestions[index][field] = value;
         setQuestions(updatedQuestions);
     };
 
     // Handle changes to answers
-    const handleAnswerChange = (index, answerIndex, value) => {
+    const handleAnswerChange = (index: number, answerIndex: number, value: string) => {
         const updatedQuestions = [...questions];
         updatedQuestions[index].answers[answerIndex] = value;
         setQuestions(updatedQuestions);
@@ -58,7 +69,7 @@ export default function AddQuizQuestionFormPage() {
     // Add a new question (only if current question is valid)
     const handleAddQuestion = () => {
         const currentQuestion = questions[questions.length - 1];
-        if (currentQuestion.question && currentQuestion.answers.every(ans => ans) && currentQuestion.correctAnswer) {
+        if (currentQuestion.question_text && currentQuestion.answers.every(ans => ans) && currentQuestion.correctAnswer) {
             setQuestions([...questions, { question_text: '', answers: ['', '', '', ''], correctAnswer: '' }]);
         } else {
             displayNotification("error", 'Please fill in all fields of the current question before adding another.');
@@ -66,7 +77,7 @@ export default function AddQuizQuestionFormPage() {
     };
 
     // Submit all questions
-    const handleSubmit = async (event) => {
+    const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
 
         // Validate that at least one question is filled and all are valid
@@ -74,10 +85,7 @@ export default function AddQuizQuestionFormPage() {
             displayNotification("error", 'Please fill in the quiz title, description, and course before submitting.');
             return;
         }
-        
 
-        console.log(questions.length)
-        console.log(questions)
         if (questions.length === 0 || questions.some(({ question_text, answers, correctAnswer }) => !question_text || answers.some((answer) => !answer) || !correctAnswer)) {
             displayNotification("error", 'Please fill in at least one complete question.');
             return;
@@ -97,18 +105,16 @@ export default function AddQuizQuestionFormPage() {
 
         try {
             const data = await fetchWithAuth({
-            method: 'POST',
-            path: `/quizzes`,
-            body: quizData
+                method: 'POST',
+                path: `/quizzes`,
+                body: quizData
             });
-    
-            displayNotification('success',data?.detail)
-            // displayNotification("success", "Quiz questions added successfully!");
+
+            displayNotification('success', data?.detail);
 
         } catch (error) {
             console.error('Error fetching user profile:', error);
         }
-
     };
 
     // Handle preview modal toggle
@@ -122,7 +128,6 @@ export default function AddQuizQuestionFormPage() {
 
     return (
         <>
-            {/* <Breadcrumb pageName="New Quiz" /> */}
             <div className="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-lg dark:bg-boxdark">
                 <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-6">Add New Quiz Questions</h1>
                 <form onSubmit={handleSubmit}>
@@ -134,7 +139,7 @@ export default function AddQuizQuestionFormPage() {
                             value={quizTitle}
                             onChange={(e) => setQuizTitle(e.target.value)}
                             placeholder="Enter quiz title"
-                            className="w-full p-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary  "
+                            className="w-full p-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             required
                         />
                     </div>
@@ -145,7 +150,7 @@ export default function AddQuizQuestionFormPage() {
                             value={quizDescription}
                             onChange={(e) => setQuizDescription(e.target.value)}
                             placeholder="Enter quiz description"
-                            className="w-full p-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary  "
+                            className="w-full p-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             required
                         />
                     </div>
@@ -156,7 +161,7 @@ export default function AddQuizQuestionFormPage() {
                         <select
                             value={selectedCourse}
                             onChange={(e) => setSelectedCourse(e.target.value)}
-                            className="w-full p-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary  "
+                            className="w-full p-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
                             required
                         >
                             <option value="" disabled>Select a course</option>
@@ -178,7 +183,7 @@ export default function AddQuizQuestionFormPage() {
                                     value={questionData.question_text}
                                     onChange={(e) => handleQuestionChange(index, 'question_text', e.target.value)}
                                     placeholder="Enter the question"
-                                    className="w-full p-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary  "
+                                    className="w-full p-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                     required
                                 />
                             </div>
@@ -192,7 +197,7 @@ export default function AddQuizQuestionFormPage() {
                                             value={answer}
                                             onChange={(e) => handleAnswerChange(index, answerIndex, e.target.value)}
                                             placeholder={`Answer ${answerIndex + 1}`}
-                                            className="w-full p-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary  "
+                                            className="w-full p-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                             required
                                         />
                                     </div>
@@ -204,7 +209,7 @@ export default function AddQuizQuestionFormPage() {
                                 <select
                                     value={questionData.correctAnswer}
                                     onChange={(e) => handleQuestionChange(index, 'correctAnswer', e.target.value)}
-                                    className="w-full p-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary  "
+                                    className="w-full p-3 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
                                     required
                                 >
                                     <option value="" disabled>Select correct answer</option>
@@ -223,7 +228,7 @@ export default function AddQuizQuestionFormPage() {
                             type="button"
                             onClick={handleAddQuestion}
                             className="text-primary hover:underline"
-                            disabled={!(questions[questions.length - 1].question && questions[questions.length - 1].answers.every(ans => ans) && questions[questions.length - 1].correctAnswer)}
+                            disabled={!(questions[questions.length - 1].question_text && questions[questions.length - 1].answers.every(ans => ans) && questions[questions.length - 1].correctAnswer)}
                         >
                             Add Another Question
                         </button>
@@ -256,7 +261,7 @@ export default function AddQuizQuestionFormPage() {
                             <p className="text-gray-600 dark:text-gray-400">Course: {courses.find(course => course.id === selectedCourse)?.title}</p>
                             {questions.map((questionData, index) => (
                                 <div key={index} className="border-b pb-4">
-                                    <p className="font-medium text-lg text-gray-700 dark:text-white">{questionData.question}</p>
+                                    <p className="font-medium text-lg text-gray-700 dark:text-white">{questionData.question_text}</p>
                                     {questionData.answers.map((answer, answerIndex) => (
                                         <p key={answerIndex} className="text-gray-600 dark:text-gray-400">
                                             {answerIndex + 1}. {answer}

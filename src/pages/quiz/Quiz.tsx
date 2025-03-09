@@ -1,15 +1,26 @@
 import { useState, useEffect } from 'react';
 
+interface Question {
+  id: number;
+  question: string;
+  options: string[];
+  correctAnswer: string;
+}
+
+interface Answers {
+  [key: number]: string;
+}
+
 const Quiz = () => {
-  // Sample quiz data (replace with API call if necessary)
-  const [quiz, setQuiz] = useState([]);
-  const [answers, setAnswers] = useState({});
+  // Typing the state properly
+  const [quiz, setQuiz] = useState<Question[]>([]); // Specify the type of quiz state
+  const [answers, setAnswers] = useState<Answers>({}); // Typing answers as an object with numeric keys
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState(0);
 
   useEffect(() => {
     // Simulated quiz data
-    const data = [
+    const data: Question[] = [
       {
         id: 1,
         question: 'What is the capital of France?',
@@ -30,11 +41,11 @@ const Quiz = () => {
       },
     ];
 
-    setQuiz(data);
+    setQuiz(data); // Set quiz data
   }, []);
 
   // Handle option change
-  const handleChange = (e, questionId) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>, questionId: number) => {
     setAnswers({
       ...answers,
       [questionId]: e.target.value,
@@ -42,7 +53,7 @@ const Quiz = () => {
   };
 
   // Handle form submission and calculate score
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     let calculatedScore = 0;
 

@@ -1,34 +1,46 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 
-const AuthContext = createContext<any>(null);
+interface AuthContextType {
+  user: any;
+  authToken: any;
+  login: (email: string, password: string) => void;
+  logout: () => void;
+  checkRole: (requiredRole: string) => boolean;
+  fetchWithAuth: (params: any) => Promise<any>;
+  displayNotification: (type: string, text: any) => void;
+  setUser: React.Dispatch<React.SetStateAction<any>>;
+}
 
-export const useAuth = () => {
-  return useContext(AuthContext);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
 
-export const AuthProvider: React.FC = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const BACKEND_URL = 'http://127.0.0.1:8000/api/v1';
 
-  const BACKEND_URL = 'http://127.0.0.1:8000/api/v1'
-
-  const [user, setUser] = useState(null);
-  const [ authToken , setAuthToken ] = React.useState(()=> JSON.parse(localStorage.getItem('tokens'))|| null);
+  const [user, setUser] = useState<any>(null);
+  const [authToken, setAuthToken] = useState<any>(() => JSON.parse(localStorage.getItem('tokens') || 'null'));
   const [loading, setLoading] = useState(true);
 
   // Fetch user profile after the token is available or on token update
   const fetchUserProfile = async () => {
-    if (!authToken || !authToken.access) return;
-    
-    try{
-        const data = await fetchWithAuth({
-          method: 'GET',
-          path: `/account/`,
-        });
+    if (!authToken?.access) return;
 
-        console.log(data)
-        setUser(data?.data);
-      }catch (error) {
+    try {
+      const data = await fetchWithAuth({
+        method: 'GET',
+        path: `/account/`,
+      });
+      console.log(data);
+      setUser(data?.data);
+    } catch (error) {
       console.error('Error fetching user profile:', error);
     }
   };
@@ -37,18 +49,18 @@ export const AuthProvider: React.FC = ({ children }) => {
     // Check if there's an auth token in localStorage and set the user on page load
     const token = localStorage.getItem('tokens');
     if (token) {
-      fetchUserProfile()
+      fetchUserProfile();
     }
     setLoading(false);
   }, []); // This runs once on page load to check the token
-
 
   // Mimicking the login API call to check username and assign role
   const login = async (email: string, password: string) => {
     const request_data = {
       email: email,
-      password: password
-    }
+      password: password,
+    };
+
     try {
       const data = await fetchWithAuth({
         method: 'POST',
@@ -56,170 +68,166 @@ export const AuthProvider: React.FC = ({ children }) => {
         body: request_data,
       });
       localStorage.setItem('tokens', JSON.stringify(data?.data?.tokens));
-      setUser(data?.data?.user)
+      setUser(data?.data?.user);
     } catch (error) {
-        console.error('Error fetching user profile:', error);
+      console.error('Error fetching user profile:', error);
     }
   };
 
-  function displayNotification(type: string, text: any ){
-    if(type==='info'){
-        toast.info(`${text}`, {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "colored",
-            });
-    }
-    else if(type==='success'){
-        toast.success(`${text}`, {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "colored",
-            });
-    }
-    else if(type==='error'){
-        toast.error(`${text}`, {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "colored",
-            });
-    }else{
-        toast(`${text}`, {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            progress: undefined,
-            theme: "colored",
-            });
+  function displayNotification(type: string, text: any) {
+    if (type === 'info') {
+      toast.info(`${text}`, {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'colored',
+      });
+    } else if (type === 'success') {
+      toast.success(`${text}`, {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'colored',
+      });
+    } else if (type === 'error') {
+      toast.error(`${text}`, {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'colored',
+      });
+    } else {
+      toast(`${text}`, {
+        position: 'top-right',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'colored',
+      });
     }
   }
 
-
   const deleteUserFromLocalStorage = () => {
-    localStorage.removeItem('user');    
-    localStorage.removeItem('tokens');    
+    localStorage.removeItem('user');
+    localStorage.removeItem('tokens');
     window.location.href = '/login';
   };
 
-  
-  async function fetchWithAuth({ method = 'GET', path, queryParams = {}, body = null , isformData = false}) {
-      const accessToken = authToken?.access
-      const refreshToken = authToken?.refresh
-      const REFRESH_TOKEN_URL = `${BACKEND_URL}/auth/token/refresh/`;
-    
-      // Build the full URL with query parameters if provided
-      let url = `${BACKEND_URL}${path}`;
-      if (Object.keys(queryParams).length > 0) {
-        const query = new URLSearchParams(queryParams).toString();
-        url = `${url}?${query}`;
-      }
-    
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-    
-      // Include the access token in the Authorization header if available
-      if (accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
-      }
-      // Make the initial API request
-      let response;
-      if(isformData){
-        response = await fetch(url, { method, headers, body: body });
-      }else{
+  async function fetchWithAuth({
+    method = 'GET',
+    path,
+    queryParams = {},
+    body = null,
+    isFormData = false,
+  }: {
+    method?: string;
+    path: string;
+    queryParams?: Record<string, any>;
+    body?: any;
+    isFormData?: boolean;
+  }) {
+    const accessToken = authToken?.access;
+    const refreshToken = authToken?.refresh;
+    const REFRESH_TOKEN_URL = `${BACKEND_URL}/auth/token/refresh/`;
+
+    // Build the full URL with query parameters if provided
+    let url = `${BACKEND_URL}${path}`;
+    if (Object.keys(queryParams).length > 0) {
+      const query = new URLSearchParams(queryParams).toString();
+      url = `${url}?${query}`;
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Include the access token in the Authorization header if available
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    let response;
+    if (isFormData) {
+      response = await fetch(url, { method, headers, body: body });
+    } else {
+      response = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
+    }
+
+    // Check if the response is a 401 (Unauthorized) error (token might be expired)
+    if (response.status === 401 && refreshToken) {
+      try {
+        // Attempt to refresh the token using the refresh token
+        const refreshResponse = await fetch(REFRESH_TOKEN_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ refresh: refreshToken }),
+        });
+
+        if (!refreshResponse.ok) {
+          throw new Error('Unable to refresh token');
+        }
+
+        // Parse the new tokens from the response
+        const refreshData = await refreshResponse.json();
+        // Store the new tokens in localStorage
+        localStorage.setItem('tokens', JSON.stringify(refreshData));
+        setAuthToken(refreshData);
+        // Retry the original request with the new access token
+        headers['Authorization'] = `Bearer ${refreshData?.access}`;
         response = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
-      }
-      
-    
-      // Check if the response is a 401 (Unauthorized) error (token might be expired)
-      if (response.status === 401 && refreshToken) {
-        try {
-          // Attempt to refresh the token using the refresh token
-          const refreshResponse = await fetch(REFRESH_TOKEN_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ refresh: refreshToken }),
-          });
-    
-          if (!refreshResponse.ok) {
-            throw new Error('Unable to refresh token');
-          }
-    
-          // Parse the new tokens from the response
-          const refreshData = await refreshResponse.json();
-          // Store the new tokens in localStorage
-          localStorage.setItem('tokens', JSON.stringify(refreshData));
-          setAuthToken(refreshData)
-          // Retry the original request with the new access token
-          headers['Authorization'] = `Bearer ${refreshData?.access}`;
-          response = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
 
-          if (!response.ok) {
-            if(response.status === 400){
-              const errorData = await response.json();
-              displayNotification('error',errorData?.message)
-              throw new Error(errorData?.message)
-            }
-            if(response.status === 401){
-              deleteUserFromLocalStorage()
-            }
-            if(response.status === 500){
-              const errorData = await response.json(); 
-              displayNotification('error',errorData?.message)
-            }
-            throw new Error(`Error fetching data from ${path}: ${response.statusText}`);
-          }
+        if (!response.ok) {
+          handleErrorResponse(response);
+        }
 
-          return response.json();
-        } catch (error) {
-          console.error('Token refresh failed:', error);
-          deleteUserFromLocalStorage()
-          throw new Error('Authentication error. Please log in again.');
-          
-        }
+        return response.json();
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+        deleteUserFromLocalStorage();
+        throw new Error('Authentication error. Please log in again.');
       }
-      // If the response is not successful, throw an error
-      if (!response.ok) {
-        if(response.status === 201 || response.status === 204){
-          return response.json();
-        }
-        // add 400 error handling
-        if(response.status === 400){
-          const errorData = await response.json();
-          displayNotification('error',errorData?.message)
-          throw new Error(errorData?.message)
-        }
-        if(response.status === 500){
-          const errorData = await response.json(); 
-          displayNotification('error',errorData?.message)
-        }
-        throw new Error(`Error fetching data from ${path}: ${response.statusText}`);
-      }
-    
-      // Return the response JSON data
-      return response.json();
-    
+    }
+
+    if (!response.ok) {
+      handleErrorResponse(response);
+    }
+
+    return response.json();
   }
+
+  const handleErrorResponse = (response: Response) => {
+    if (response.status === 400) {
+      response.json().then((errorData) => {
+        displayNotification('error', errorData?.message);
+      });
+    }
+    if (response.status === 401) {
+      deleteUserFromLocalStorage();
+    }
+    if (response.status === 500) {
+      response.json().then((errorData) => {
+        displayNotification('error', errorData?.message);
+      });
+    }
+    throw new Error(`Error fetching data: ${response.statusText}`);
+  };
 
   // Logout function
   const logout = () => {
@@ -237,7 +245,16 @@ export const AuthProvider: React.FC = ({ children }) => {
     return false;
   };
 
-  const value = { user,authToken, login, logout, checkRole, fetchWithAuth,displayNotification,setUser };
+  const value: AuthContextType = {
+    user,
+    authToken,
+    login,
+    logout,
+    checkRole,
+    fetchWithAuth,
+    displayNotification,
+    setUser,
+  };
 
   return (
     <AuthContext.Provider value={value}>
