@@ -18,7 +18,7 @@ export default function AddQuizQuestionFormPage() {
     // State for the quiz title, description, and course
     const [quizTitle, setQuizTitle] = useState('');
     const [quizDescription, setQuizDescription] = useState('');
-    const [selectedCourse, setSelectedCourse] = useState('');
+    const [selectedCourse, setSelectedCourse] = useState<string>('');  // Fixed type to string
     const [courses] = useState<Course[]>([]); // To hold list of courses for selection
 
     // State for all questions
