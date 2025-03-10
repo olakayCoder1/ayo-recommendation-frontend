@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BookmarkPlus, Share2, ThumbsUp, MessageSquare } from 'lucide-react';
 import thumbnail from '../../assets/images/thumbnail-im.jpg'
+import { Link } from 'react-router-dom';
 
 interface Article {
   id: number;
@@ -126,14 +127,14 @@ const ArticleReadingPage: React.FC = () => {
         <div className="mt-8">
           <h3 className="font-bold text-lg mb-4">Related Articles</h3>
           <div className="grid grid-cols-2 gap-4">
-            <div className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 cursor-pointer transition-colors">
+            <Link to={`/articles/90`} className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 cursor-pointer transition-colors">
               <h4 className="font-medium mb-1">How AI is Transforming Online Learning Platforms</h4>
               <p className="text-gray-500 text-sm">8 min read</p>
-            </div>
-            <div className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 cursor-pointer transition-colors">
+            </Link>
+            <Link to={`/articles/90`} className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 cursor-pointer transition-colors">
               <h4 className="font-medium mb-1">Ethics of AI in Academic Assessment</h4>
               <p className="text-gray-500 text-sm">10 min read</p>
-            </div>
+            </Link>
           </div>
         </div>
       </div>

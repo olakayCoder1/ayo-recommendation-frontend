@@ -161,7 +161,7 @@ const StudentDashboard: React.FC = () => {
               </Link>
             ))}
           </div>
-          <button className="w-full mt-4 text-indigo-600 font-medium py-2 hover:bg-indigo-50 rounded-lg transition-colors">
+          <button onClick={()=> navigate('/articles')} className="w-full mt-4 text-indigo-600 font-medium py-2 hover:bg-indigo-50 rounded-lg transition-colors">
             View All Recommended Articles
           </button>
         </div>
