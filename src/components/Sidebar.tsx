@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import SideNavbarItem from './SideNavbarItem';
 import { GoHome } from "react-icons/go";
@@ -17,6 +17,7 @@ interface SidebarProps {
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   const { logout } = useAuth();
+  const location = useLocation();
 
   const trigger = useRef<any>(null);
   const sidebar = useRef<any>(null);
@@ -25,6 +26,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
   const [sidebarExpanded] = useState(
     storedSidebarExpanded === null ? false : storedSidebarExpanded === 'true'
   );
+
+  // Close sidebar when location changes (a link is clicked)
+  useEffect(() => {
+    if (sidebarOpen) {
+      setSidebarOpen(false);
+    }
+  }, [location, setSidebarOpen]);
 
   // close on click outside
   useEffect(() => {
@@ -60,6 +68,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
       document.querySelector('body')?.classList.remove('sidebar-expanded');
     }
   }, [sidebarExpanded]);
+
+  // Handle logout with sidebar closing
+  const handleLogout = () => {
+    setSidebarOpen(false);
+    logout();
+  };
 
   return (
     <aside
@@ -108,7 +122,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
               <SideNavbarItem to="/quizes" icon={<MdOutlineArticle />} label="Quizes" />
               
 
-              {/* Collapsible Quiz menu with subitems */}
+              {/* Collapsible Video menu with subitems */}
               <SideNavbarItem 
                 icon={<MdOutlineVideoCameraBack />} 
                 label="Video M" 
@@ -133,7 +147,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
               {/* Logout button */}
               <li>
                 <button 
-                  onClick={logout}
+                  onClick={handleLogout} // Use the new handler function
                   className="flex items-center gap-3.5 p-4 text-sm font-medium duration-300 ease-in-out text-red-700 hover:text-red-500 lg:text-base"
                 >
                   <svg

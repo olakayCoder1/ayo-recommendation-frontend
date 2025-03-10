@@ -178,7 +178,7 @@ const AdminQuizUploadPage: React.FC = () => {
     
     // Mock submission - typically you'd make an API call here
     alert('Quiz successfully created!');
-    navigate('/admin/quizzes');
+    navigate('/admin/quiz-list');
   };
   
   return (
@@ -469,7 +469,7 @@ const AdminQuizUploadPage: React.FC = () => {
         <div className="flex justify-end">
           <button
             type="button"
-            onClick={() => navigate('/admin/quizzes')}
+            onClick={() => navigate('/admin/quiz-list')}
             className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md mr-2 hover:bg-gray-50"
           >
             Cancel

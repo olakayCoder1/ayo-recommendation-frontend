@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { IoChevronDown, IoChevronForward } from 'react-icons/io5';
 
 interface SubNavItem {
@@ -12,9 +12,16 @@ interface SideNavbarItemProps {
   icon: React.ReactNode;
   label: string;
   subItems?: SubNavItem[];
+  setSidebarOpen?: (isOpen: boolean) => void;
 }
 
-const SideNavbarItem: React.FC<SideNavbarItemProps> = ({ to, icon, label, subItems }) => {
+const SideNavbarItem: React.FC<SideNavbarItemProps> = ({ 
+  to, 
+  icon, 
+  label, 
+  subItems,
+  setSidebarOpen 
+}) => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   
@@ -25,9 +32,24 @@ const SideNavbarItem: React.FC<SideNavbarItemProps> = ({ to, icon, label, subIte
   // If there are subitems, this is a collapsible menu item
   const isCollapsible = subItems && subItems.length > 0;
   
-  const toggleCollapse = () => {
+  // Handle clicking on a regular nav item
+  const handleNavClick = () => {
+    // Only close on mobile
+    if (window.innerWidth < 1024 && setSidebarOpen) {
+      setSidebarOpen(false);
+    }
+  };
+  
+  // Toggle collapse for dropdown items
+  const toggleCollapse = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setIsOpen(!isOpen);
   };
+
+  // Close dropdown when location changes
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location]);
 
   return (
     <li>
@@ -54,6 +76,7 @@ const SideNavbarItem: React.FC<SideNavbarItemProps> = ({ to, icon, label, subIte
                 <li key={index}>
                   <NavLink
                     to={subItem.to}
+                    onClick={handleNavClick}
                     className={({ isActive }) => 
                       `block text-sm py-2 px-2 rounded-sm ${
                         isActive ? 'bg-gray-400' : ''
@@ -71,6 +94,7 @@ const SideNavbarItem: React.FC<SideNavbarItemProps> = ({ to, icon, label, subIte
         // Regular nav item with link
         <NavLink
           to={to || '#'}
+          onClick={handleNavClick}
           className={`group relative flex items-center text-sm font-normal gap-2.5 rounded-sm py-2 px-4 duration-300 ease-in-out hover:bg-gray-300 ${
             isActive ? 'bg-gray-400' : ''
           }`}

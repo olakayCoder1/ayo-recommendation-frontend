@@ -243,7 +243,7 @@ const AdminQuizEditPage: React.FC = () => {
     
     // Mock submission - typically you'd make an API call here
     alert('Quiz successfully updated!');
-    navigate('/admin/quizzes');
+    navigate('/admin/quiz-list');
   };
   
   if (isLoading) {

@@ -1,6 +1,4 @@
-// In src/components/Header/index.tsx:
 
-import { Link } from 'react-router-dom'; // Removed unnecessary imports
 import DropdownUser from './DropdownUser'; // Kept DropdownUser if you use it
 // Removed DarkModeSwitcher and useNavigate if not necessary.
 
@@ -11,7 +9,7 @@ const Header = (props: {
   // Removed user and navigate since they're not being used
 
   return (
-    <header className="sticky top-0 z-999 flex w-full bg-white drop-shadow-1 dark:bg-boxdark dark:drop-shadow-none border-b-2">
+    <header className="sticky top-0 z-40 flex w-full bg-white drop-shadow-1 dark:bg-boxdark dark:drop-shadow-none border-b-2">
       <div className="flex flex-grow items-center justify-between px-4 py-4 shadow-2 md:px-6 2xl:px-11">
         <div className="flex items-center gap-2 sm:gap-4 lg:hidden">
           {/* Hamburger Toggle BTN */}
@@ -57,9 +55,9 @@ const Header = (props: {
           </button>
           {/* Hamburger Toggle BTN */}
 
-          <Link className="block flex-shrink-0 lg:hidden" to="/">
+          {/* <Link className="block flex-shrink-0 lg:hidden" to="/">
             <img src='' alt="Logo" />
-          </Link>
+          </Link> */}
         </div>
 
         <div className="hidden sm:block">
