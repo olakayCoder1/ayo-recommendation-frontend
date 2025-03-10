@@ -37,7 +37,6 @@ const ProfileManagementPage: React.FC = () => {
   // Form states
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [isManagingInterests, setIsManagingInterests] = useState(false);
   const [profileForm, setProfileForm] = useState({ ...profile });
   const [passwordForm, setPasswordForm] = useState<PasswordReset>({
     currentPassword: '',

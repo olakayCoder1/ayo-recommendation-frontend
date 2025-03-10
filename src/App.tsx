@@ -10,7 +10,6 @@ import AddQuizQuestionFormPage from './pages/AddQuizQuestionFormPage';
 import AdminPage from './pages/AdminPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Settings from './pages/Settings';
 import Unauthorized from './pages/Unauthorized';
 import Loader from './components/Loader';
 import AllVideosPage from './pages/videos/AllVideosPage';
@@ -55,7 +54,7 @@ function App() {
           
           
 
-          {/* <Route path="/admin/*" element={<RoleBasedRoute element={<AdminPage />} requiredRole="admin" />} /> */}
+          <Route path="/admin-----/*" element={<RoleBasedRoute element={<AdminPage />} requiredRole="admin" />} />
           <Route path="/admin/quiz-list" element={<PrivateRoute element={<QuizListingPage />} />} />
           <Route path="/admin/quiz-create" element={<PrivateRoute element={<AdminQuizUploadPage />} />} />
           <Route path="/admin/quiz-edit/:id" element={<PrivateRoute element={<AdminQuizEditPage />} />} />
