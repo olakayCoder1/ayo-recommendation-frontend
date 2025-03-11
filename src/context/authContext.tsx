@@ -42,6 +42,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!authToken?.access) return;
 
     try {
+      setGlobalLoadingText("Setting up profile...")
+      setGlobalLoading(true);
+      
+
       const data = await fetchWithAuth({
         method: 'GET',
         path: `/account/`,
@@ -50,6 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data?.data);
     } catch (error) {
       console.error('Error fetching user profile:', error);
+    }finally{
+      setGlobalLoading(false);
     }
   };
 

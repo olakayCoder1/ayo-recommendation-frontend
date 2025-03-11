@@ -12,8 +12,9 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      setGlobalLoading(true)
       setGlobalLoadingText('Authenticating...')
+      setGlobalLoading(true)
+      
       await login(username, password);
       navigate('/home');
     } catch (error) {

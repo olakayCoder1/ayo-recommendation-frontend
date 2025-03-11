@@ -25,6 +25,7 @@ import QuizListingPage from './pages/quiz/admin/QuizListingPage';
 import AdminQuizEditPage from './pages/quiz/admin/AdminQuizEditPage';
 import VideoUploadPage from './pages/videos/admin/VideoUploadPage';
 import VideoListingPage from './pages/quiz/admin/VideoListingPage';
+import StudentListingPage from './pages/admin/students/StudentListingPage';
 
 function App() {
 
@@ -61,6 +62,8 @@ function App() {
           <Route path="/admin/quiz-results" element={<PrivateRoute element={<AdminQuizUploadPage />} />} />
           <Route path="/admin/video-list" element={<PrivateRoute element={<VideoListingPage />} />} />
           <Route path="/admin/video-upload" element={<PrivateRoute element={<VideoUploadPage />} />} />
+
+          <Route path="/admin/students" element={<PrivateRoute element={<StudentListingPage />} />} />
           
           {/* Unauthorized route */}
           <Route path="/unauthorized" element={<Unauthorized />} />

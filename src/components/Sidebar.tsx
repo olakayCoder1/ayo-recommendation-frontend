@@ -8,6 +8,7 @@ import {
   MdOutlineManageAccounts, 
   MdOutlineVideoCameraBack, 
   MdOutlineArticle,
+  MdOutlinePeopleAlt,
 } from "react-icons/md";
 
 interface SidebarProps {
@@ -119,7 +120,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
               <SideNavbarItem to="/home" icon={<GoHome />} label="Home" />
               <SideNavbarItem to="/videos" icon={<MdOutlineVideoCameraBack />} label="Videos" />
               <SideNavbarItem to="/articles" icon={<MdOutlineArticle />} label="Articles" />
-              <SideNavbarItem to="/quizes" icon={<MdOutlineArticle />} label="Quizes" />
+              <SideNavbarItem to="/quizes" icon={<MdOutlineArticle />} label="Quizzes" />
               
 
               {/* Collapsible Video menu with subitems */}
@@ -142,6 +143,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 ]}
               />
               
+              <SideNavbarItem to="/admin/students" icon={<MdOutlinePeopleAlt />} label="Students" />
               <SideNavbarItem to="/account" icon={<MdOutlineManageAccounts />} label="Account" />
   
               {/* Logout button */}
