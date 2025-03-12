@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import avatar from '../../../assets/images/thumbnail-im.jpg'
+import avatar from '../../../assets/images/thumbnail-im.jpg';
 
 // Types
 interface Student {
