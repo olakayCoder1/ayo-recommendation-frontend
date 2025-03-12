@@ -64,6 +64,8 @@ const VideoUploadPage: React.FC = () => {
       }, 1000);
     } else if (!isUploading) {
       setShowProgressModal(false);
+    }else{
+      console.log(selectedCategoryName)
     }
   }, [isUploading, uploadProgress]);
 
