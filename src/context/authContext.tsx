@@ -14,6 +14,7 @@ interface AuthContextType {
   fetchWithAuth: (params: any) => Promise<any>;
   displayNotification: (type: string, text: any) => void;
   setUser: React.Dispatch<React.SetStateAction<any>>;
+  BACKEND_URL:string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,9 +28,9 @@ export const useAuth = (): AuthContextType => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // const BACKEND_URL = 'http://127.0.0.1:8000/api/v1';
+  const BACKEND_URL = 'http://127.0.0.1:8000/api/v1';
 
-  const BACKEND_URL = 'https://ayo-recommendation-backend.onrender.com/api/v1';
+  // const BACKEND_URL = 'https://ayo-recommendation-backend.onrender.com/api/v1';
 
   const [user, setUser] = useState<any>(null);
   const [authToken, setAuthToken] = useState<any>(() => JSON.parse(localStorage.getItem('tokens') || 'null'));
@@ -274,6 +275,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setGlobalLoading,
     globalLoadingText,
     setGlobalLoadingText,
+    BACKEND_URL
   };
 
   return (

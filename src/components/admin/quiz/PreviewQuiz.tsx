@@ -1,44 +1,57 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // Types
-interface QuizQuestion {
-  id: string;
+interface Option {
+  id: number;
+  option_id: string;
   text: string;
-  options: {
-    id: string;
-    text: string;
-  }[];
-  correctOptionId?: string; // Only used when showing results
-  explanation?: string; // Only shown after answering
+  is_correct: boolean;
+}
+
+interface QuizQuestion {
+  id: number;
+  text: string;
+  options: Option[];
+  explanation?: string;
+}
+
+interface CategoryObject {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface Tag {
+  id: string;
+  name: string;
 }
 
 interface Quiz {
   id: string;
   title: string;
   description: string;
-  category: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  author: {
-    name: string;
-    avatar: string;
-  };
+  category: CategoryObject;
+  level: 'Easy' | 'Medium' | 'Hard';
+  estimated_time: number;
+  tags?: Tag[];
+  created_at: string;
   questions: QuizQuestion[];
 }
 
 interface PreviewQuizProps {
   quiz: Quiz;
-  closeModal: () => void; // Accept closeModal function from parent
+  closeModal: () => void;
 }
 
 const PreviewQuiz: React.FC<PreviewQuizProps> = ({ quiz, closeModal }) => {
   // State
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({});
   const [showResults, setShowResults] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30 * 60); // 30 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(quiz.estimated_time * 60); // Convert minutes to seconds
   const [isPaused, setIsPaused] = useState(false);
 
-  const modalRef = useRef<HTMLDivElement | null>(null); // Reference to modal
+  const modalRef = useRef<HTMLDivElement | null>(null);
 
   // Timer effect
   useEffect(() => {
@@ -62,7 +75,7 @@ const PreviewQuiz: React.FC<PreviewQuizProps> = ({ quiz, closeModal }) => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        closeModal(); // Call the close function passed from the parent
+        closeModal();
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -84,11 +97,18 @@ const PreviewQuiz: React.FC<PreviewQuizProps> = ({ quiz, closeModal }) => {
   // Progress percentage
   const progressPercentage = (Object.keys(selectedOptions).length / quiz.questions.length) * 100;
 
+  // Find correct option ID for a question
+  const getCorrectOptionId = (question: QuizQuestion): string => {
+    const correctOption = question.options.find(option => option.is_correct);
+    return correctOption ? correctOption.option_id : '';
+  };
+
   // Calculate score
   const calculateScore = () => {
     let correct = 0;
     quiz.questions.forEach(question => {
-      if (selectedOptions[question.id] === question.correctOptionId) {
+      const correctOptionId = getCorrectOptionId(question);
+      if (selectedOptions[question.id] === correctOptionId) {
         correct++;
       }
     });
@@ -100,7 +120,7 @@ const PreviewQuiz: React.FC<PreviewQuizProps> = ({ quiz, closeModal }) => {
   };
 
   // Handle option selection
-  const handleOptionSelect = (questionId: string, optionId: string) => {
+  const handleOptionSelect = (questionId: number, optionId: string) => {
     if (showResults) return;
 
     setSelectedOptions(prev => ({
@@ -132,7 +152,7 @@ const PreviewQuiz: React.FC<PreviewQuizProps> = ({ quiz, closeModal }) => {
     setSelectedOptions({});
     setCurrentQuestionIndex(0);
     setShowResults(false);
-    setTimeLeft(30 * 60);
+    setTimeLeft(quiz.estimated_time * 60);
   };
 
   return (
@@ -142,7 +162,7 @@ const PreviewQuiz: React.FC<PreviewQuizProps> = ({ quiz, closeModal }) => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b">
           <div>
             <h1 className="text-2xl font-bold">{quiz.title}</h1>
-            <div className="text-sm text-gray-500 mt-1">{quiz.category} • {quiz.difficulty}</div>
+            <div className="text-sm text-gray-500 mt-1">{quiz.category.name} • {quiz.level}</div>
           </div>
           <div className="mt-4 md:mt-0 flex items-center">
             <div className="flex items-center mr-4">
@@ -174,7 +194,6 @@ const PreviewQuiz: React.FC<PreviewQuizProps> = ({ quiz, closeModal }) => {
           ></div>
         </div>
         
-        {/* Render quiz content here (same as before) */}
         {!showResults ? (
         <>
           {/* Question */}
@@ -192,19 +211,19 @@ const PreviewQuiz: React.FC<PreviewQuizProps> = ({ quiz, closeModal }) => {
                 <div 
                   key={option.id}
                   className={`p-4 border rounded-lg cursor-pointer transition ${
-                    selectedOptions[currentQuestion.id] === option.id
+                    selectedOptions[currentQuestion.id] === option.option_id
                       ? 'border-indigo-500 bg-indigo-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
-                  onClick={() => handleOptionSelect(currentQuestion.id, option.id)}
+                  onClick={() => handleOptionSelect(currentQuestion.id, option.option_id)}
                 >
                   <div className="flex items-center">
                     <div className={`w-5 h-5 mr-3 rounded-full flex items-center justify-center border ${
-                      selectedOptions[currentQuestion.id] === option.id
+                      selectedOptions[currentQuestion.id] === option.option_id
                         ? 'border-indigo-500 bg-indigo-500'
                         : 'border-gray-300'
                     }`}>
-                      {selectedOptions[currentQuestion.id] === option.id && (
+                      {selectedOptions[currentQuestion.id] === option.option_id && (
                         <div className="w-2 h-2 rounded-full bg-white"></div>
                       )}
                     </div>
@@ -312,17 +331,19 @@ const PreviewQuiz: React.FC<PreviewQuizProps> = ({ quiz, closeModal }) => {
           <div className="space-y-8">
             <h3 className="text-xl font-bold">Question Review</h3>
             
-            {quiz.questions.map((question, index) => (
+            {quiz.questions.map((question, index) => {
+              const correctOptionId = getCorrectOptionId(question);
+              return (
               <div key={question.id} className="border rounded-lg overflow-hidden">
                 <div className="p-4 bg-gray-50 border-b">
                   <div className="flex justify-between items-start">
                     <span className="font-medium">Question {index + 1}</span>
                     <span className={`text-sm px-2 py-1 rounded-full ${
-                      selectedOptions[question.id] === question.correctOptionId
+                      selectedOptions[question.id] === correctOptionId
                         ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {selectedOptions[question.id] === question.correctOptionId ? 'Correct' : 'Incorrect'}
+                      {selectedOptions[question.id] === correctOptionId ? 'Correct' : 'Incorrect'}
                     </span>
                   </div>
                   <p className="mt-2">{question.text}</p>
@@ -333,21 +354,25 @@ const PreviewQuiz: React.FC<PreviewQuizProps> = ({ quiz, closeModal }) => {
                     <div 
                       key={option.id}
                       className={`p-3 my-2 rounded-lg ${
-                        selectedOptions[question.id] === option.id
-                          ? selectedOptions[question.id] === question.correctOptionId
+                        selectedOptions[question.id] === option.option_id
+                          ? selectedOptions[question.id] === correctOptionId
                             ? 'bg-green-50'
                             : 'bg-red-50'
-                          : ''
+                          : option.is_correct
+                            ? 'bg-green-50'
+                            : ''
                       }`}
                     >
                       <div className="flex items-center">
                         <span
                           className={`w-4 h-4 mr-3 rounded-full border ${
-                            selectedOptions[question.id] === option.id
-                              ? selectedOptions[question.id] === question.correctOptionId
+                            selectedOptions[question.id] === option.option_id
+                              ? selectedOptions[question.id] === correctOptionId
                                 ? 'border-green-500 bg-green-500'
                                 : 'border-red-500 bg-red-500'
-                              : 'border-gray-300'
+                              : option.is_correct
+                                ? 'border-green-500 bg-green-500'
+                                : 'border-gray-300'
                           }`}
                         />
                         <span>{option.text}</span>
@@ -359,7 +384,7 @@ const PreviewQuiz: React.FC<PreviewQuizProps> = ({ quiz, closeModal }) => {
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
           
           <div className="mt-8 text-center">
@@ -378,4 +403,3 @@ const PreviewQuiz: React.FC<PreviewQuizProps> = ({ quiz, closeModal }) => {
 };
 
 export default PreviewQuiz;
-

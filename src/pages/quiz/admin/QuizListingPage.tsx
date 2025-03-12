@@ -1,39 +1,62 @@
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import thumbnail from '../../../assets/images/thumbnail-im.jpg'
 import PreviewQuiz from '../../../components/admin/quiz/PreviewQuiz';
+import { useAuth } from '../../../context/authContext';
+
+interface Option {
+  id: number;
+  option_id: string;
+  text: string;
+  is_correct: boolean;
+}
 
 interface QuizQuestion {
-    id: string;
-    text: string;
-    options: {
-      id: string;
-      text: string;
-    }[];
-    correctOptionId?: string; 
-    explanation?: string; 
-    
-  }
+  id: number;
+  text: string;
+  options: Option[];
+  explanation?: string;
+}
 
-// Types
+interface CategoryObject {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+}
+
+// Updated Quiz interface to match API response
 interface Quiz {
   id: string;
   title: string;
   description: string;
-  category: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  estimatedTime: number;
-  tags: string[];
-  questionsCount: number;
-  author: {
-    name: string;
-    avatar: string;
-  };
-  createdAt: string;
+  category: CategoryObject;
+  level: 'Easy' | 'Medium' | 'Hard';
+  estimated_time: number;
+  tags?: string[] | Tag[]; // Update to handle both string[] and Tag[] types
+  created_at: string;
   questions: QuizQuestion[];
 }
 
+interface ApiResponse {
+  metadata: {
+    count: number;
+    is_filter: boolean;
+    has_records: boolean;
+    page_size: number;
+    page: number;
+    next: string | null;
+    previous: string | null;
+  };
+  results: Quiz[];
+}
+
 const QuizListingPage: React.FC = () => {
+  const { fetchWithAuth, displayNotification } = useAuth();
   // State
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [filteredQuizzes, setFilteredQuizzes] = useState<Quiz[]>([]);
@@ -41,188 +64,69 @@ const QuizListingPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
+  const [availableCategories, setAvailableCategories] = useState<CategoryObject[]>([]);
 
-  const questions =  [
-    {
-      id: 'q1',
-      text: 'Which of the following is a primitive type in TypeScript?',
-      options: [
-        { id: 'a', text: 'array' },
-        { id: 'b', text: 'object' },
-        { id: 'c', text: 'boolean' },
-        { id: 'd', text: 'function' },
-      ],
-      correctOptionId: 'c',
-      explanation: 'TypeScript has several primitive types: boolean, number, string, undefined, null, symbol, and bigint. Arrays, objects, and functions are not primitive types.'
-    },
-    {
-      id: 'q2',
-      text: 'What does the "readonly" modifier do in TypeScript?',
-      options: [
-        { id: 'a', text: 'It makes a property only readable by certain classes' },
-        { id: 'b', text: 'It prevents a property from being changed after initialization' },
-        { id: 'c', text: 'It marks a method as final and prevents overriding' },
-        { id: 'd', text: 'It designates a class that cannot be instantiated' },
-      ],
-      correctOptionId: 'b',
-      explanation: 'The "readonly" modifier in TypeScript makes a property immutable after it has been initialized. You can set its value when creating the object, but you cannot change it afterward.'
-    },
-    {
-      id: 'q3',
-      text: 'What is the purpose of the "interface" keyword in TypeScript?',
-      options: [
-        { id: 'a', text: 'To create a new instance of a class' },
-        { id: 'b', text: 'To define a contract for object shapes' },
-        { id: 'c', text: 'To implement inheritance between classes' },
-        { id: 'd', text: 'To define public APIs for libraries' },
-      ],
-      correctOptionId: 'b',
-      explanation: 'Interfaces in TypeScript define the structure or shape that objects must conform to. They act as contracts and are used for type-checking.'
-    },
-    {
-      id: 'q4',
-      text: 'What is the purpose of generics in TypeScript?',
-      options: [
-        { id: 'a', text: 'To create reusable components that work with a variety of types' },
-        { id: 'b', text: 'To define static methods in a class' },
-        { id: 'c', text: 'To specify global variables accessible throughout an application' },
-        { id: 'd', text: 'To optimize code compilation speed' },
-      ],
-      correctOptionId: 'a',
-      explanation: 'Generics in TypeScript allow you to create reusable components that can work with different types while maintaining type safety. They let you create functions, classes, and interfaces that work with any type you specify when using them.'
-    },
-    {
-      id: 'q5',
-      text: 'What is the "any" type in TypeScript?',
-      options: [
-        { id: 'a', text: 'A type that can only hold numeric values' },
-        { id: 'b', text: 'A type that automatically converts between different types' },
-        { id: 'c', text: 'A type that can hold any value and bypasses type checking' },
-        { id: 'd', text: 'A type that cannot be null or undefined' },
-      ],
-      correctOptionId: 'c',
-      explanation: 'The "any" type in TypeScript allows a variable to hold values of any type. It effectively opts out of type checking for that variable, making it similar to how variables work in JavaScript.'
-    },
-  ]
+  async function fetchTags() {
+    try {
+      const data = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/tags/`,
+      });
+      setAvailableTags(data);
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+    }
+  }
 
-  // Mock data - In a real application, this would come from an API
-  useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockQuizzes: Quiz[] = [
-        {
-          id: '1',
-          title: 'TypeScript Fundamentals',
-          description: 'Test your knowledge of TypeScript basics including types, interfaces, and generics',
-          category: 'Programming',
-          difficulty: 'Medium',
-          estimatedTime: 30,
-          tags: ['TypeScript', 'Web Development', 'JavaScript'],
-          questionsCount: 5,
-          author: {
-            name: 'Sarah Johnson',
-            avatar: thumbnail,
-          },
-          createdAt: '2025-02-15T14:22:18Z',
-          questions:questions
-        },
-        {
-          id: '2',
-          title: 'React Hooks Deep Dive',
-          description: 'Master React Hooks and functional component patterns',
-          category: 'Web Development',
-          difficulty: 'Hard',
-          estimatedTime: 45,
-          tags: ['React', 'JavaScript', 'Hooks'],
-          questionsCount: 8,
-          author: {
-            name: 'Michael Chen',
-            avatar: thumbnail,
-          },
-          createdAt: '2025-03-01T09:15:00Z',
-          questions:questions
-        },
-        {
-          id: '3',
-          title: 'CSS Grid Layout Basics',
-          description: 'Learn how to create responsive layouts with CSS Grid',
-          category: 'Web Development',
-          difficulty: 'Easy',
-          estimatedTime: 20,
-          tags: ['CSS', 'Web Design', 'Responsive'],
-          questionsCount: 4,
-          author: {
-            name: 'Emma Wilson',
-            avatar: thumbnail,
-          },
-          createdAt: '2025-02-22T11:30:45Z',
-          questions:questions
-        },
-        {
-          id: '4',
-          title: 'Python Data Structures',
-          description: 'Understanding lists, dictionaries, sets, and tuples in Python',
-          category: 'Programming',
-          difficulty: 'Medium',
-          estimatedTime: 35,
-          tags: ['Python', 'Data Structures', 'Programming'],
-          questionsCount: 6,
-          author: {
-            name: 'David Kim',
-            avatar: thumbnail,
-          },
-          createdAt: '2025-03-05T16:42:30Z',
-          questions:questions
-        },
-        {
-          id: '5',
-          title: 'SQL Query Basics',
-          description: 'Learn essential SQL queries for database manipulation',
-          category: 'Databases',
-          difficulty: 'Easy',
-          estimatedTime: 25,
-          tags: ['SQL', 'Databases', 'Data'],
-          questionsCount: 5,
-          author: {
-            name: 'Olivia Martinez',
-            avatar: thumbnail,
-          },
-          createdAt: '2025-02-28T13:20:15Z',
-          questions:questions
-        },
-        {
-          id: '6',
-          title: 'Advanced JavaScript Patterns',
-          description: 'Exploring advanced patterns and techniques in JavaScript',
-          category: 'Programming',
-          difficulty: 'Hard',
-          estimatedTime: 50,
-          tags: ['JavaScript', 'Advanced', 'Design Patterns'],
-          questionsCount: 7,
-          author: {
-            name: 'James Wilson',
-            avatar: thumbnail,
-          },
-          createdAt: '2025-03-08T10:15:45Z',
-          questions:questions
-        },
-      ];
+  async function fetchCategories() {
+    try {
+      const data = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/categories/`,
+      });
+      setAvailableCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }
 
-      setQuizzes(mockQuizzes);
-      setFilteredQuizzes(mockQuizzes);
+  async function fetchQuizzes() {
+    try {
+      const data: ApiResponse = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/quizzes/`,
+      });
+      
+      // Process the quiz data to ensure tags are in a consistent format
+      const processedQuizzes = data.results.map(quiz => {
+        // Ensure tags are always in a consistent format (array of string IDs)
+        const processedTags = Array.isArray(quiz.tags) 
+          ? quiz.tags.map(tag => typeof tag === 'string' ? tag : tag.id)
+          : [];
+        
+        return {
+          ...quiz,
+          tags: processedTags
+        };
+      });
+      
+      setQuizzes(processedQuizzes);
+      setFilteredQuizzes(processedQuizzes);
+    } catch (error) {
+      console.error('Error fetching quizzes:', error);
+      displayNotification("error", "Failed to fetch quizzes.");
+    } finally {
       setIsLoading(false);
+    }
+  }
 
-      // Extract all unique tags
-      const allTags = Array.from(
-        new Set(
-          mockQuizzes.flatMap(quiz => quiz.tags)
-        )
-      );
-      setAvailableTags(allTags);
-    }, 1000);
+  useEffect(() => {
+    fetchQuizzes();
+    fetchTags();
+    fetchCategories();
   }, []);
 
   // Apply filters
@@ -235,19 +139,19 @@ const QuizListingPage: React.FC = () => {
       result = result.filter(quiz => 
         quiz.title.toLowerCase().includes(term) || 
         quiz.description.toLowerCase().includes(term) ||
-        quiz.category.toLowerCase().includes(term)
+        quiz.category.name.toLowerCase().includes(term)
       );
     }
 
     // Apply difficulty filter
     if (difficultyFilter) {
-      result = result.filter(quiz => quiz.difficulty === difficultyFilter);
+      result = result.filter(quiz => quiz.level === difficultyFilter);
     }
 
-    // Apply tag filters
+    // Apply tag filters - Fixed to work with array of tag IDs
     if (selectedTags.length > 0) {
       result = result.filter(quiz => 
-        selectedTags.some(tag => quiz.tags.includes(tag))
+        quiz.tags && quiz.tags.some(tagId => selectedTags.includes(tagId))
       );
     }
 
@@ -255,11 +159,11 @@ const QuizListingPage: React.FC = () => {
   }, [quizzes, searchTerm, difficultyFilter, selectedTags]);
 
   // Handle tag selection
-  const toggleTag = (tag: string) => {
+  const toggleTag = (tagId: string) => {
     setSelectedTags(prev => 
-      prev.includes(tag)
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
+      prev.includes(tagId)
+        ? prev.filter(t => t !== tagId)
+        : [...prev, tagId]
     );
   };
 
@@ -275,24 +179,26 @@ const QuizListingPage: React.FC = () => {
 
   // Handle quiz preview
   const openPreviewModal = (quiz: Quiz) => {
-    console.log(
-        quiz.title,
-    )
     setSelectedQuiz(quiz);
     setShowPreviewModal(true);
   };
 
-
   const closeModal = () => {
     setShowPreviewModal(false);
     setSelectedQuiz(null);
-    };
+  };
 
   // Clear all filters
   const clearFilters = () => {
     setSearchTerm('');
     setDifficultyFilter('');
     setSelectedTags([]);
+  };
+
+  // Function to get tag name from id (for display purposes)
+  const getTagName = (tagId: string) => {
+    const tag = availableTags.find(t => t.id === tagId);
+    return tag ? tag.name : tagId;
   };
 
   return (
@@ -364,15 +270,15 @@ const QuizListingPage: React.FC = () => {
           <div className="flex flex-wrap gap-2">
             {availableTags.map(tag => (
               <button
-                key={tag}
-                onClick={() => toggleTag(tag)}
+                key={tag.id}
+                onClick={() => toggleTag(tag.id)}
                 className={`px-3 py-1 rounded-full text-sm ${
-                  selectedTags.includes(tag)
+                  selectedTags.includes(tag.id)
                     ? 'bg-indigo-100 text-indigo-800 border border-indigo-300'
                     : 'bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200'
                 }`}
               >
-                {tag}
+                {tag.name}
               </button>
             ))}
           </div>
@@ -424,12 +330,12 @@ const QuizListingPage: React.FC = () => {
                           <div className="text-sm font-medium text-gray-900">{quiz.title}</div>
                           <div className="text-sm text-gray-500 truncate max-w-xs">{quiz.description}</div>
                           <div className="mt-1 flex flex-wrap gap-1 sm:hidden">
-                            {quiz.tags.slice(0, 2).map(tag => (
-                              <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
-                                {tag}
+                            {quiz.tags && quiz.tags.slice(0, 2).map(tagId => (
+                              <span key={`${tagId}-${quiz.id}`} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                                {getTagName(tagId)}
                               </span>
                             ))}
-                            {quiz.tags.length > 2 && (
+                            {quiz.tags && quiz.tags.length > 2 && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                                 +{quiz.tags.length - 2}
                               </span>
@@ -439,21 +345,21 @@ const QuizListingPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                      <div className="text-sm text-gray-900">{quiz.category}</div>
+                      <div className="text-sm text-gray-900">{quiz.category.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${quiz.difficulty === 'Easy' ? 'bg-green-100 text-green-800' : 
-                          quiz.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 
+                        ${quiz.level === 'Easy' ? 'bg-green-100 text-green-800' : 
+                          quiz.level === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 
                           'bg-red-100 text-red-800'}`}>
-                        {quiz.difficulty}
+                        {quiz.level}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
-                      {quiz.estimatedTime} mins
+                      {quiz.estimated_time} mins
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                      {formatDate(quiz.createdAt)}
+                      {formatDate(quiz.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
@@ -476,8 +382,11 @@ const QuizListingPage: React.FC = () => {
           </div>
         </div>
       )}
-        {/* Preview Modal */}
-        {showPreviewModal && selectedQuiz && ( <PreviewQuiz quiz={selectedQuiz} closeModal={closeModal}/> )}
+      {/* Preview Modal */}
+      {showPreviewModal && selectedQuiz && (
+          
+        <PreviewQuiz quiz={selectedQuiz} closeModal={closeModal} />
+      )}
     </div>
   );
 };

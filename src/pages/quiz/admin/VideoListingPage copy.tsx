@@ -142,6 +142,7 @@ const VideoListingPage: React.FC = () => {
         )
       );
       setAvailableTags(allTags);
+      console.log(allTags)
 
       // Extract all unique categories
       const allCategories = Array.from(

@@ -1,38 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import thumbnail from '../../../assets/images/thumbnail-im.jpg';
+import { useAuth } from '../../../context/authContext';
+import VideoDetails from './VideoDetails';
 
 // Types
+interface Tag {
+  id: string;
+  name: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 interface Video {
   id: string;
   title: string;
   description: string;
-  channel: string;
-  category: string;
-  visibility: 'Public' | 'Unlisted' | 'Private';
-  duration: number; // in seconds
-  views: number;
-  likes: number;
-  uploadDate: string;
-  tags: string[];
+  slug: string;
+  category: Category;
+  tags: Tag[];
+  video_file: string;
   thumbnail: string;
-  videoUrl: string;
+  created_at: string;
+  views: number;
+  status?: 'Public' | 'Unlisted' | 'Private'; // Making optional as it's not in your API response
 }
 
+interface ApiResponse {
+  metadata: {
+    count: number;
+    is_filter: boolean;
+    has_records: boolean;
+    page_size: number;
+    page: number;
+    next: string | null;
+    previous: string | null;
+  };
+  results: Video[];
+}
+
+
 const VideoListingPage: React.FC = () => {
+  const { fetchWithAuth, displayNotification } = useAuth();
+  
   // State
   const [videos, setVideos] = useState<Video[]>([]);
   const [filteredVideos, setFilteredVideos] = useState<Video[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [visibilityFilter, setVisibilityFilter] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
-  const [durationFilter, setDurationFilter] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
-  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<string>('uploadDate');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
   
   // Modal states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -40,123 +64,58 @@ const VideoListingPage: React.FC = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [videoToView, setVideoToView] = useState<Video | null>(null);
 
-  // Mock data - In a real application, this would come from an API
+  async function fetchTags() {
+    try {
+        const data = await fetchWithAuth({
+            method: 'GET',
+            path: `/admin/tags/`,
+        });
+        setAvailableTags(data);
+    } catch (error) {
+        console.error('Error fetching tags:', error);
+        displayNotification("error", "Failed to fetch tags.");
+    }
+  }
+
+  async function fetchCategories() {
+    try {
+        const data = await fetchWithAuth({
+            method: 'GET',
+            path: `/admin/categories/`,
+        });
+        setAvailableCategories(data);
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        displayNotification("error", "Failed to fetch categories.");
+    }
+  }
+
+  async function fetchVideos() {
+    try {
+        const data: ApiResponse = await fetchWithAuth({
+            method: 'GET',
+            path: `/admin/videos/`,
+        });
+        
+        // Set default status if not provided in API
+        const videosWithStatus = data.results.map(video => ({
+            ...video,
+            status: video.status || 'Public' // Default to 'Public' if status is not provided
+        }));
+        
+        setVideos(videosWithStatus);
+    } catch (error) {
+        console.error('Error fetching videos:', error);
+        displayNotification("error", "Failed to fetch videos.");
+    } finally {
+        setIsLoading(false);
+    }
+  }
+
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-        const mockVideos: Video[] = [
-            {
-              id: '1',
-              title: 'How to Build a React App with Tailwind CSS',
-              description: 'In this video, we explore how to build responsive UIs with React and Tailwind CSS. We\'ll cover component structure, responsive design principles, and best practices for modern web development.',
-              channel: 'WebDev Mastery',
-              category: 'Web Development',
-              visibility: 'Public',
-              duration: 1458, // 24:18
-              views: 1200000,
-              likes: 45000,
-              uploadDate: '2025-02-15T14:22:18Z',
-              tags: ['React', 'Tailwind CSS', 'Web Development', 'Frontend'],
-              thumbnail: thumbnail,
-              videoUrl: 'https://www.example.com/videos/react-tailwind.mp4',
-            },
-            {
-              id: '2',
-              title: 'Advanced React Hooks Tutorial',
-              description: 'Learn how to use React Hooks including useState, useEffect, useContext, useReducer, and custom hooks to build powerful functional components.',
-              channel: 'React Masters',
-              category: 'Web Development',
-              visibility: 'Public',
-              duration: 1104, // 18:24
-              views: 856000,
-              likes: 32000,
-              uploadDate: '2025-01-20T09:15:00Z',
-              tags: ['React', 'React Hooks', 'JavaScript', 'Frontend'],
-              thumbnail: thumbnail,
-              videoUrl: 'https://www.example.com/videos/react-hooks.mp4',
-            },
-            {
-              id: '3',
-              title: 'CSS Grid Layout Basics',
-              description: 'Master CSS Grid to create responsive layouts for modern web applications with minimal code.',
-              channel: 'CSS Wizards',
-              category: 'Web Design',
-              visibility: 'Public',
-              duration: 765, // 12:45
-              views: 543000,
-              likes: 28000,
-              uploadDate: '2025-02-10T11:30:45Z',
-              tags: ['CSS', 'Grid', 'Web Design', 'Responsive Design'],
-              thumbnail: thumbnail,
-              videoUrl: 'https://www.example.com/videos/css-grid.mp4',
-            },
-            {
-              id: '4',
-              title: 'Build a Full-Stack App with React and Node',
-              description: 'Learn how to build a complete full-stack application with React for frontend and Node.js/Express for backend. Includes authentication and database integration.',
-              channel: 'Full Stack Journey',
-              category: 'Full Stack',
-              visibility: 'Public',
-              duration: 1930, // 32:10
-              views: 1800000,
-              likes: 76000,
-              uploadDate: '2024-10-05T16:42:30Z',
-              tags: ['React', 'Node.js', 'Express', 'MongoDB', 'Full Stack'],
-              thumbnail: thumbnail,
-              videoUrl: 'https://www.example.com/videos/fullstack-app.mp4',
-            },
-            {
-              id: '5',
-              title: 'Introduction to TypeScript for React Developers',
-              description: 'Learn how to use TypeScript with React to create type-safe components and applications.',
-              channel: 'TypeScript Tutorials',
-              category: 'Web Development',
-              visibility: 'Private',
-              duration: 1320, // 22:00
-              views: 420000,
-              likes: 18000,
-              uploadDate: '2025-02-28T13:20:15Z',
-              tags: ['TypeScript', 'React', 'JavaScript', 'Web Development'],
-              thumbnail: thumbnail,
-              videoUrl: 'https://www.example.com/videos/typescript-react.mp4',
-            },
-            {
-              id: '6',
-              title: 'Modern CSS Techniques Every Developer Should Know',
-              description: 'Explore the latest CSS features and techniques that will revolutionize your web development workflow.',
-              channel: 'CSS Wizards',
-              category: 'Web Design',
-              visibility: 'Unlisted',
-              duration: 1860, // 31:00
-              views: 640000,
-              likes: 29000,
-              uploadDate: '2025-03-08T10:15:45Z',
-              tags: ['CSS', 'Web Design', 'Frontend', 'UI Design'],
-              thumbnail: thumbnail,
-              videoUrl: 'https://www.example.com/videos/modern-css.mp4',
-            },
-          ];
-
-      setVideos(mockVideos);
-      setFilteredVideos(mockVideos);
-      setIsLoading(false);
-
-      // Extract all unique tags
-      const allTags = Array.from(
-        new Set(
-          mockVideos.flatMap(video => video.tags)
-        )
-      );
-      setAvailableTags(allTags);
-
-      // Extract all unique categories
-      const allCategories = Array.from(
-        new Set(
-          mockVideos.map(video => video.category)
-        )
-      );
-      setAvailableCategories(allCategories);
-    }, 1000);
+    fetchVideos();
+    fetchTags();
+    fetchCategories();
   }, []);
 
   // Apply filters and sorting
@@ -169,61 +128,29 @@ const VideoListingPage: React.FC = () => {
       result = result.filter(video => 
         video.title.toLowerCase().includes(term) || 
         video.description.toLowerCase().includes(term) ||
-        video.channel.toLowerCase().includes(term) ||
-        video.category.toLowerCase().includes(term)
+        video.category?.name.toLowerCase().includes(term)
       );
     }
 
     // Apply visibility filter
     if (visibilityFilter) {
-      result = result.filter(video => video.visibility === visibilityFilter);
+      result = result.filter(video => video.status === visibilityFilter);
     }
 
     // Apply category filter
     if (categoryFilter) {
-      result = result.filter(video => video.category === categoryFilter);
-    }
-
-    // Apply duration filter
-    if (durationFilter) {
-      switch (durationFilter) {
-        case 'short':
-          result = result.filter(video => video.duration < 600); // < 10 mins
-          break;
-        case 'medium':
-          result = result.filter(video => video.duration >= 600 && video.duration < 1200); // 10-20 mins
-          break;
-        case 'long':
-          result = result.filter(video => video.duration >= 1200); // > 20 mins
-          break;
-      }
+      result = result.filter(video => video.category?.id === categoryFilter);
     }
 
     // Apply tag filters
     if (selectedTags.length > 0) {
       result = result.filter(video => 
-        selectedTags.some(tag => video.tags.includes(tag))
+        selectedTags.some(tagId => video.tags?.some(tag => tag.id === tagId))
       );
     }
 
-    // Apply sorting
-    result = [...result].sort((a, b) => {
-      let valA = a[sortBy as keyof Video];
-      let valB = b[sortBy as keyof Video];
-      
-      // Handle special case for dates
-      if (sortBy === 'uploadDate') {
-        valA = new Date(valA as string).getTime();
-        valB = new Date(valB as string).getTime();
-      }
-      
-      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
-    });
-
     setFilteredVideos(result);
-  }, [videos, searchTerm, visibilityFilter, categoryFilter, durationFilter, selectedTags, sortBy, sortOrder]);
+  }, [videos, searchTerm, visibilityFilter, categoryFilter, selectedTags]);
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -235,18 +162,6 @@ const VideoListingPage: React.FC = () => {
     }).format(date);
   };
 
-  // Format duration (from seconds to MM:SS or HH:MM:SS)
-  const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    } else {
-      return `${minutes}:${secs.toString().padStart(2, '0')}`;
-    }
-  };
 
   // Format view count
   const formatViews = (viewCount: number) => {
@@ -260,11 +175,11 @@ const VideoListingPage: React.FC = () => {
   };
 
   // Toggle tag selection
-  const toggleTag = (tag: string) => {
+  const toggleTag = (tagId: string) => {
     setSelectedTags(prev => 
-      prev.includes(tag)
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
+      prev.includes(tagId)
+        ? prev.filter(t => t !== tagId)
+        : [...prev, tagId]
     );
   };
 
@@ -273,15 +188,7 @@ const VideoListingPage: React.FC = () => {
     setSearchTerm('');
     setVisibilityFilter('');
     setCategoryFilter('');
-    setDurationFilter('');
     setSelectedTags([]);
-    setSortBy('uploadDate');
-    setSortOrder('desc');
-  };
-
-  // Toggle sort order
-  const toggleSortOrder = () => {
-    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
   // Handle delete confirmation
@@ -291,12 +198,25 @@ const VideoListingPage: React.FC = () => {
   };
 
   // Confirm delete
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (videoToDelete) {
-      console.log('Deleting video:', videoToDelete);
-      // In a real app, you would call an API here
-      // After successful deletion, you would update the videos state
-      setVideos(prev => prev.filter(video => video.id !== videoToDelete));
+      
+      try {
+        setIsDeleting(true)
+        await fetchWithAuth({
+          method: 'DELETE',
+          path: `/admin/videos/${videoToDelete}/`,
+        });
+        
+        // After successful deletion, update the videos state
+        setVideos(prev => prev.filter(video => video.id !== videoToDelete));
+        displayNotification("success", "Video deleted successfully.");
+      } catch (error) {
+        console.error('Error deleting video:', error);
+        displayNotification("error", "Failed to delete video.");
+      }finally{
+        setIsDeleting(false)
+      }
     }
     setShowDeleteModal(false);
     setVideoToDelete(null);
@@ -306,6 +226,12 @@ const VideoListingPage: React.FC = () => {
   const handleViewClick = (video: Video) => {
     setVideoToView(video);
     setShowViewModal(true);
+  };
+
+  // Close view modal
+  const closeViewModal = () => {
+    setShowViewModal(false);
+    setVideoToView(null);
   };
 
   return (
@@ -335,7 +261,7 @@ const VideoListingPage: React.FC = () => {
             <input
               type="text"
               id="search"
-              placeholder="Search by title, description, or channel"
+              placeholder="Search by title, description, or category"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-md"
@@ -354,7 +280,7 @@ const VideoListingPage: React.FC = () => {
             >
               <option value="">All Categories</option>
               {availableCategories.map(category => (
-                <option key={category} value={category}>{category}</option>
+                <option key={category.id} value={category.id}>{category.name}</option>
               ))}
             </select>
           </div>
@@ -376,58 +302,6 @@ const VideoListingPage: React.FC = () => {
             </select>
           </div>
 
-          <div>
-            <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-1">
-              Duration
-            </label>
-            <select
-              id="duration"
-              value={durationFilter}
-              onChange={(e) => setDurationFilter(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md"
-            >
-              <option value="">All Durations</option>
-              <option value="short">Short ( 10 mins)</option>
-              <option value="medium">Medium (10-20 mins)</option>
-              <option value="long">Long ( 20 mins)</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 mb-1">
-              Sort By
-            </label>
-            <div className="flex">
-              <select
-                id="sortBy"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-l-md"
-              >
-                <option value="uploadDate">Upload Date</option>
-                <option value="title">Title</option>
-                <option value="views">Views</option>
-                <option value="likes">Likes</option>
-                <option value="duration">Duration</option>
-              </select>
-              <button
-                onClick={toggleSortOrder}
-                className="px-3 py-2 border border-gray-300 border-l-0 rounded-r-md bg-gray-50"
-                title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-              >
-                {sortOrder === 'asc' ? (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path>
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path>
-                  </svg>
-                )}
-              </button>
-            </div>
-          </div>
-
           <div className="md:col-span-1 flex items-end">
             <button
               onClick={clearFilters}
@@ -446,15 +320,15 @@ const VideoListingPage: React.FC = () => {
           <div className="flex flex-wrap gap-2">
             {availableTags.map(tag => (
               <button
-                key={tag}
-                onClick={() => toggleTag(tag)}
+                key={tag.id}
+                onClick={() => toggleTag(tag.id)}
                 className={`px-3 py-1 rounded-full text-sm ${
-                  selectedTags.includes(tag)
+                  selectedTags.includes(tag.id)
                     ? 'bg-indigo-100 text-indigo-800 border border-indigo-300'
                     : 'bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200'
                 }`}
               >
-                {tag}
+                {tag.name}
               </button>
             ))}
           </div>
@@ -480,14 +354,8 @@ const VideoListingPage: React.FC = () => {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Video
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                    Kab
-                  </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                     Category
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                    Duration
                   </th>
                   <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
                     Views
@@ -514,17 +382,14 @@ const VideoListingPage: React.FC = () => {
                             src={video.thumbnail} 
                             alt={video.title} 
                           />
-                          <div className="absolute bottom-1 right-1 bg-black bg-opacity-75 text-white text-xs px-1 rounded">
-                            {formatDuration(video.duration)}
-                          </div>
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{video.title}</div>
                           <div className="text-xs text-gray-500 truncate max-w-xs">{video.description}</div>
                           <div className="mt-1 flex flex-wrap gap-1 sm:hidden">
                             {video.tags.slice(0, 2).map(tag => (
-                              <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
-                                {tag}
+                              <span key={tag.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                                {tag.name}
                               </span>
                             ))}
                             {video.tags.length > 2 && (
@@ -536,28 +401,22 @@ const VideoListingPage: React.FC = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                      <div className="text-sm text-gray-900">{video.channel}</div>
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap hidden lg:table-cell">
-                      <div className="text-sm text-gray-900">{video.category}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 hidden sm:table-cell">
-                      {formatDuration(video.duration)}
+                      <div className="text-sm text-gray-900">{video.category?.name || 'Uncategorized'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500 hidden lg:table-cell">
                       {formatViews(video.views)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full text-center
-                        ${video.visibility === 'Public' ? 'bg-green-100 text-green-800' : 
-                          video.visibility === 'Unlisted' ? 'bg-yellow-100 text-yellow-800' : 
+                        ${video.status === 'Public' ? 'bg-green-100 text-green-800' : 
+                          video.status === 'Unlisted' ? 'bg-yellow-100 text-yellow-800' : 
                           'bg-gray-100 text-gray-800'}`}>
-                        {video.visibility}
+                        {video.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                      {formatDate(video.uploadDate)}
+                      {formatDate(video.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
@@ -604,76 +463,22 @@ const VideoListingPage: React.FC = () => {
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                className={`px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 ${
+                  isDeleting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={isDeleting}
               >
-                Delete
+                {isDeleting ? 'Processing...' : 'Delete'}
               </button>
             </div>
           </div>
         </div>
       )}
 
+
       {/* Video View Modal */}
       {showViewModal && videoToView && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full shadow-xl">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">{videoToView.title}</h3>
-              <button 
-                onClick={() => setShowViewModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
-            <div className="p-0 bg-black">
-              <div className="relative pt-[56.25%]"> {/* 16:9 aspect ratio */}
-                <video 
-                  className="absolute inset-0 w-full h-full"
-                  controls
-                  poster={videoToView.thumbnail}
-                  src={videoToView.videoUrl}
-                >
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            </div>
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h4 className="text-xl font-semibold mb-1">{videoToView.title}</h4>
-                  <p className="text-gray-500 text-sm">
-                    {formatViews(videoToView.views)} views • Uploaded {formatDate(videoToView.uploadDate)}
-                  </p>
-                </div>
-                <span className={`px-2 py-1 text-xs font-semibold rounded-full
-                  ${videoToView.visibility === 'Public' ? 'bg-green-100 text-green-800' : 
-                    videoToView.visibility === 'Unlisted' ? 'bg-yellow-100 text-yellow-800' : 
-                    'bg-gray-100 text-gray-800'}`}>
-                  {videoToView.visibility}
-                </span>
-              </div>
-              <p className="text-gray-700 mb-4">{videoToView.description}</p>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {videoToView.tags.map(tag => (
-                  <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <div className="border-t border-gray-200 pt-4 flex justify-end">
-                <button
-                  onClick={() => setShowViewModal(false)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <VideoDetails video={videoToView} onClose={closeViewModal} />
       )}
     </div>
   );
