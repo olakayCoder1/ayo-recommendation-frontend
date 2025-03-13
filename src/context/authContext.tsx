@@ -28,6 +28,7 @@ export const useAuth = (): AuthContextType => {
   return context;
 };
 
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // const BACKEND_URL = 'http://127.0.0.1:8000/api/v1';
 
