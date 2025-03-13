@@ -19,6 +19,20 @@ interface Student {
   };
 }
 
+
+// interface ApiResponse {
+//   metadata: {
+//     count: number;
+//     is_filter: boolean;
+//     has_records: boolean;
+//     page_size: number;
+//     page: number;
+//     next: string | null;
+//     previous: string | null;
+//   };
+//   results: Student[];
+// }
+
 // Confirmation Modal Component
 const ConfirmationModal: React.FC<{
   isOpen: boolean;

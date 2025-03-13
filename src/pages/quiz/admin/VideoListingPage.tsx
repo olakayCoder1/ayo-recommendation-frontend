@@ -26,7 +26,7 @@ interface Video {
   thumbnail: string;
   created_at: string;
   views: number;
-  status?: 'Public' | 'Unlisted' | 'Private'; // Making optional as it's not in your API response
+  status?: 'Public' | 'Unlisted' | 'Private';
 }
 
 interface ApiResponse {

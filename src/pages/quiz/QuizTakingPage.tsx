@@ -1,112 +1,81 @@
 import React, { useState, useEffect } from 'react';
-import thumbnail from '../../assets/images/thumbnail-im.jpg'
+import { useParams } from 'react-router-dom';
+import { useAuth } from '../../context/authContext';
+
 // Types
+interface Option {
+  id: string;
+  text: string;
+}
+
 interface QuizQuestion {
   id: string;
   text: string;
-  options: {
-    id: string;
-    text: string;
-  }[];
-  correctOptionId?: string; // Only used when showing results
-  explanation?: string; // Only shown after answering
+  options: Option[];
+  correctOptionId: string;
+  explanation?: string;
+}
+
+interface CategoryObject {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface Tag {
+  id: string;
+  name: string;
 }
 
 interface Quiz {
   id: string;
   title: string;
   description: string;
-  category: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  author: {
-    name: string;
-    avatar: string;
-  };
+  category: CategoryObject | string;
+  level?: 'Easy' | 'Medium' | 'Hard';
+  estimated_time?: number;
+  tags?: string[] | Tag[];
+  created_at?: string;
   questions: QuizQuestion[];
+  difficulty?: 'Easy' | 'Medium' | 'Hard';
 }
 
 const QuizTakingPage: React.FC = () => {
-  // Sample quiz data
-  const [quiz] = useState<Quiz>({
-    id: '1',
-    title: 'TypeScript Fundamentals',
-    description: 'Test your knowledge of TypeScript basics including types, interfaces, and generics',
-    category: 'Programming',
-    difficulty: 'Medium',
-    author: {
-      name: 'Sarah Johnson',
-      avatar: thumbnail,
-    },
-    questions: [
-      {
-        id: 'q1',
-        text: 'Which of the following is a primitive type in TypeScript?',
-        options: [
-          { id: 'a', text: 'array' },
-          { id: 'b', text: 'object' },
-          { id: 'c', text: 'boolean' },
-          { id: 'd', text: 'function' },
-        ],
-        correctOptionId: 'c',
-        explanation: 'TypeScript has several primitive types: boolean, number, string, undefined, null, symbol, and bigint. Arrays, objects, and functions are not primitive types.'
-      },
-      {
-        id: 'q2',
-        text: 'What does the "readonly" modifier do in TypeScript?',
-        options: [
-          { id: 'a', text: 'It makes a property only readable by certain classes' },
-          { id: 'b', text: 'It prevents a property from being changed after initialization' },
-          { id: 'c', text: 'It marks a method as final and prevents overriding' },
-          { id: 'd', text: 'It designates a class that cannot be instantiated' },
-        ],
-        correctOptionId: 'b',
-        explanation: 'The "readonly" modifier in TypeScript makes a property immutable after it has been initialized. You can set its value when creating the object, but you cannot change it afterward.'
-      },
-      {
-        id: 'q3',
-        text: 'What is the purpose of the "interface" keyword in TypeScript?',
-        options: [
-          { id: 'a', text: 'To create a new instance of a class' },
-          { id: 'b', text: 'To define a contract for object shapes' },
-          { id: 'c', text: 'To implement inheritance between classes' },
-          { id: 'd', text: 'To define public APIs for libraries' },
-        ],
-        correctOptionId: 'b',
-        explanation: 'Interfaces in TypeScript define the structure or shape that objects must conform to. They act as contracts and are used for type-checking.'
-      },
-      {
-        id: 'q4',
-        text: 'What is the purpose of generics in TypeScript?',
-        options: [
-          { id: 'a', text: 'To create reusable components that work with a variety of types' },
-          { id: 'b', text: 'To define static methods in a class' },
-          { id: 'c', text: 'To specify global variables accessible throughout an application' },
-          { id: 'd', text: 'To optimize code compilation speed' },
-        ],
-        correctOptionId: 'a',
-        explanation: 'Generics in TypeScript allow you to create reusable components that can work with different types while maintaining type safety. They let you create functions, classes, and interfaces that work with any type you specify when using them.'
-      },
-      {
-        id: 'q5',
-        text: 'What is the "any" type in TypeScript?',
-        options: [
-          { id: 'a', text: 'A type that can only hold numeric values' },
-          { id: 'b', text: 'A type that automatically converts between different types' },
-          { id: 'c', text: 'A type that can hold any value and bypasses type checking' },
-          { id: 'd', text: 'A type that cannot be null or undefined' },
-        ],
-        correctOptionId: 'c',
-        explanation: 'The "any" type in TypeScript allows a variable to hold values of any type. It effectively opts out of type checking for that variable, making it similar to how variables work in JavaScript.'
-      },
-    ]
-  });
-
+  const { fetchWithAuth } = useAuth();
+  const { id } = useParams<{ id: string }>();
+  
   // State
+  const [loading, setLoading] = useState(true);
+  const [quiz, setQuiz] = useState<Quiz>({
+    id: '',
+    title: '',
+    description: '',
+    category: '',
+    difficulty: 'Medium',
+    questions: [ ]
+  });
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30 * 60); // 30 minutes in seconds
   const [isPaused, setIsPaused] = useState(false);
+
+  async function fetchQuizData() {
+    setLoading(true);
+    try {
+      const data = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/quizzes/${id}/`,
+      });
+      
+      // Transform the API response to our form format
+      setQuiz(data);
+    } catch (error) {
+      console.error('Error fetching quiz data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   // Timer effect
   useEffect(() => {
@@ -126,11 +95,37 @@ const QuizTakingPage: React.FC = () => {
     return () => clearInterval(timer);
   }, [isPaused, showResults]);
 
+  // Fetch quiz data on component mount
+  useEffect(() => {
+    if (id) {
+      fetchQuizData();
+    }
+  }, [id]);
+
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  // Get category name
+  const getCategoryName = () => {
+    if (typeof quiz.category === 'string') {
+      return quiz.category;
+    }
+    return quiz.category.name;
+  };
+
+  // Get formatted tags
+  const getFormattedTags = () => {
+    if (!quiz.tags || quiz.tags.length === 0) return null;
+    
+    if (typeof quiz.tags[0] === 'string') {
+      return (quiz.tags as string[]);
+    } else {
+      return (quiz.tags as Tag[]).map(tag => tag.name);
+    }
   };
 
   // Current question
@@ -190,13 +185,47 @@ const QuizTakingPage: React.FC = () => {
     setTimeLeft(30 * 60);
   };
 
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen flex flex-col items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mb-4"></div>
+        <p className="text-gray-600">Loading quiz...</p>
+      </div>
+    );
+  }
+
+  const tags = getFormattedTags();
+
   return (
     <div className="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b">
         <div>
           <h1 className="text-2xl font-bold">{quiz.title}</h1>
-          <div className="text-sm text-gray-500 mt-1">{quiz.category} • {quiz.difficulty}</div>
+          <div className="text-sm text-gray-500 mt-1">
+            {getCategoryName()} • {quiz.difficulty}
+          </div>
+          
+          {/* Tags */}
+          {tags && tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {tags.map((tag, index) => (
+                <span 
+                  key={index} 
+                  className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+          
+          {/* Description */}
+          {quiz.description && (
+            <div className="mt-3 text-sm text-gray-700">
+              {quiz.description}
+            </div>
+          )}
         </div>
         <div className="mt-4 md:mt-0 flex items-center">
           <div className="flex items-center mr-4">
@@ -230,12 +259,12 @@ const QuizTakingPage: React.FC = () => {
               <div className="text-sm text-gray-500 mb-2">
                 Question {currentQuestionIndex + 1} of {quiz.questions.length}
               </div>
-              <h2 className="text-xl font-bold">{currentQuestion.text}</h2>
+              <h2 className="text-xl font-bold">{currentQuestion?.text}</h2>
             </div>
             
             {/* Options */}
             <div className="space-y-3">
-              {currentQuestion.options.map(option => (
+              {currentQuestion?.options.map(option => (
                 <div 
                   key={option.id}
                   className={`p-4 border rounded-lg cursor-pointer transition ${
@@ -274,7 +303,7 @@ const QuizTakingPage: React.FC = () => {
               Previous
             </button>
             
-            {currentQuestionIndex < quiz.questions.length - 1 ? (
+            {currentQuestionIndex < quiz?.questions.length - 1 ? (
               <button
                 onClick={goToNextQuestion}
                 className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
@@ -296,7 +325,7 @@ const QuizTakingPage: React.FC = () => {
           <div className="mt-10">
             <h3 className="text-sm font-medium text-gray-700 mb-3">Question Navigation</h3>
             <div className="flex flex-wrap gap-2">
-              {quiz.questions.map((question, index) => (
+              {quiz?.questions.map((question, index) => (
                 <button
                   key={question.id}
                   onClick={() => setCurrentQuestionIndex(index)}
@@ -359,7 +388,7 @@ const QuizTakingPage: React.FC = () => {
           <div className="space-y-8">
             <h3 className="text-xl font-bold">Question Review</h3>
             
-            {quiz.questions.map((question, index) => (
+            {quiz?.questions.map((question, index) => (
               <div key={question.id} className="border rounded-lg overflow-hidden">
                 <div className="p-4 bg-gray-50 border-b">
                   <div className="flex justify-between items-start">
@@ -376,7 +405,7 @@ const QuizTakingPage: React.FC = () => {
                 </div>
                 
                 <div className="p-4">
-                  {question.options.map(option => (
+                  {question?.options.map(option => (
                     <div 
                       key={option.id}
                       className={`p-3 my-2 rounded-lg ${
@@ -413,7 +442,7 @@ const QuizTakingPage: React.FC = () => {
                 </div>
                 
                 {/* Explanation */}
-                {question.explanation && (
+                {question?.explanation && (
                   <div className="p-4 bg-blue-50 border-t border-blue-100">
                     <h4 className="text-sm font-medium text-blue-800 mb-1">Explanation</h4>
                     <p className="text-blue-900">{question.explanation}</p>
@@ -434,12 +463,6 @@ const QuizTakingPage: React.FC = () => {
           </div>
         </div>
       )}
-      
-      {/* Author info */}
-      <div className="mt-12 flex items-center text-gray-500 text-sm">
-        <img src={quiz.author.avatar} alt={quiz.author.name} className="w-8 h-8 rounded-full mr-2" />
-        <span>Created by {quiz.author.name}</span>
-      </div>
     </div>
   );
 };

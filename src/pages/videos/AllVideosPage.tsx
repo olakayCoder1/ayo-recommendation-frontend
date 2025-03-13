@@ -1,134 +1,139 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import thumbnail from '../../assets/images/thumbnail-im.jpg'
+import thumbnail from '../../assets/images/thumbnail-im.jpg';
+import { useAuth } from '../../context/authContext';
+
+interface Tag {
+  id: string;
+  name: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 interface Video {
-    id: number;
-    title: string;
-    channel: string;
-    views: string;
-    date: string;
-    thumbnail: string;
-    channelAvatar: string;
-    duration?: string;
-    description?: string;
-  }
+  id: string;
+  title: string;
+  description: string;
+  slug: string;
+  category: Category;
+  tags: Tag[];
+  video_file: string;
+  thumbnail: string;
+  created_at: string;
+  views: number;
+  status?: 'Public' | 'Unlisted' | 'Private';
+  channel?: string;
+  channelAvatar?: string;
+  duration?: string;
+  date?: string;
+}
+
+interface ApiResponse {
+  metadata: {
+    count: number;
+    is_filter: boolean;
+    has_records: boolean;
+    page_size: number;
+    page: number;
+    next: string | null;
+    previous: string | null;
+  };
+  results: Video[];
+}
 
 const AllVideosPage: React.FC = () => {
-  // In a real app, we would fetch these videos from an API
-  const [searchTerm] = useState<string>('');
+  const { fetchWithAuth, displayNotification } = useAuth();
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  
-  const categories: string[] = [
-    'All', 'JavaScript', 'React', 'TypeScript', 'CSS', 'HTML', 'Node.js', 
-    'Python', 
-  ];
-  
-  const videos: Video[] = [
-    {
-      id: 1,
-      title: 'How to Build a React App with Tailwind CSS',
-      channel: 'WebDev Mastery',
-      views: '1.2M views',
-      date: '2 weeks ago',
-      thumbnail: thumbnail,
-      channelAvatar: '/api/placeholder/40/40',
-      duration: '24:18'
-    },
-    {
-      id: 2,
-      title: 'Advanced React Hooks Tutorial',
-      channel: 'React Masters',
-      views: '856K views',
-      date: '3 weeks ago',
-      thumbnail: thumbnail,
-      channelAvatar: '/api/placeholder/40/40',
-      duration: '18:24'
-    },
-    {
-      id: 3,
-      title: 'Tailwind CSS Tips and Tricks',
-      channel: 'CSS Wizards',
-      views: '543K views',
-      date: '1 month ago',
-      thumbnail: thumbnail,
-      channelAvatar: '/api/placeholder/40/40',
-      duration: '12:45'
-    },
-    {
-      id: 4,
-      title: 'Build a Full-Stack App with React and Node',
-      channel: 'Full Stack Journey',
-      views: '1.8M views',
-      date: '5 months ago',
-      thumbnail: thumbnail,
-      channelAvatar: '/api/placeholder/40/40',
-      duration: '32:10'
-    },
-    {
-      id: 5,
-      title: 'Responsive Design Fundamentals',
-      channel: 'UI/UX Hub',
-      views: '723K views',
-      date: '2 months ago',
-      thumbnail: thumbnail,
-      channelAvatar: '/api/placeholder/40/40',
-      duration: '15:30'
-    },
-    {
-      id: 6,
-      title: 'TypeScript for Beginners - Complete Course',
-      channel: 'TypeScript Guru',
-      views: '1.5M views',
-      date: '3 months ago',
-      thumbnail: thumbnail,
-      channelAvatar: '/api/placeholder/40/40',
-      duration: '2:45:30'
-    },
-    {
-      id: 7,
-      title: 'CSS Grid vs Flexbox - When to Use Each',
-      channel: 'CSS Wizards',
-      views: '895K views',
-      date: '4 months ago',
-      thumbnail: thumbnail,
-      channelAvatar: '/api/placeholder/40/40',
-      duration: '15:45'
-    },
-    {
-      id: 8,
-      title: 'Modern JavaScript ES6+ Features You Need to Know',
-      channel: 'JS Champions',
-      views: '2.3M views',
-      date: '1 year ago',
-      thumbnail: thumbnail,
-      channelAvatar: '/api/placeholder/40/40',
-      duration: '28:12'
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [availableCategories, setAvailableCategories] = useState<Tag[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [hasNextPage, setHasNextPage] = useState<boolean>(false);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+
+  async function fetchTags() {
+    try {
+      const data = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/tags/`,
+      });
+      setAvailableCategories(data);
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+      displayNotification("error", "Failed to fetch tags.");
     }
-  ];
-  
-  // Filter videos based on search term
-  const filteredVideos = videos.filter(video => 
-    video.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    video.channel.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
+  }
+
+  async function fetchVideos(page = 1, append = false) {
+    try {
+      setIsLoadingMore(append);
+      if (!append) setIsLoading(true);
+      
+      const data: ApiResponse = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/videos/?page_size=10&page=${page}`,
+      });
+      
+      // Set default status if not provided in API
+      const videosWithStatus = data.results.map(video => ({
+        ...video,
+        status: video.status || 'Public', // Default to 'Public' if status is not provided
+        date: new Date(video.created_at).toLocaleDateString(), // Format date from created_at
+        channel: video.category?.name || 'Unknown Channel', // Use category name as channel if available
+        duration: '00:00' // Add a placeholder duration since it's not in the API
+      }));
+      
+      if (append) {
+        setVideos(prev => [...prev, ...videosWithStatus]);
+      } else {
+        setVideos(videosWithStatus);
+      }
+      
+      // Check if there's a next page
+      setHasNextPage(!!data.metadata.next);
+      setCurrentPage(page);
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+      displayNotification("error", "Failed to fetch videos.");
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
+  }
+
+  const loadMoreVideos = () => {
+    if (hasNextPage && !isLoadingMore) {
+      fetchVideos(currentPage + 1, true);
+    }
+  };
+
+  useEffect(() => {
+    fetchVideos();
+    fetchTags();
+  }, []);
+
+  // Filter videos based on search term and selected category
+  const filteredVideos = videos.filter(video => {
+    const matchesSearch = video.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          video.tags.some(tag => tag.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesCategory = selectedCategory === 'All' || 
+                           video.tags.some(tag => tag.id === selectedCategory);
+    
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="bg-gray-100 min-h-screen">
       {/* Header with search */}
-      {/* <header className="bg-white p-4 sticky top-0 z-10 shadow-sm">
+      <header className="bg-white p-4 sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between">
-          <div className="flex items-center mb-4 md:mb-0">
-            <div className="bg-red-600 text-white p-2 rounded-lg mr-2">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-              </svg>
-            </div>
-            <h1 className="text-xl font-bold">TypeTube</h1>
-          </div>
-          
           <div className="w-full md:w-1/2">
             <div className="relative">
               <input 
@@ -145,32 +150,35 @@ const AllVideosPage: React.FC = () => {
               </button>
             </div>
           </div>
-          
-          <div className="hidden md:block">
-            <img 
-              src="/api/placeholder/40/40" 
-              alt="User avatar" 
-              className="w-8 h-8 rounded-full"
-            />
-          </div>
         </div>
-      </header> */}
+      </header>
       
       {/* Category filters */}
       <div className="bg-white sticky top-16 z-10 shadow-sm">
         <div className="container mx-auto overflow-x-auto">
           <div className="flex space-x-4 p-2 whitespace-nowrap">
-            {categories.map(category => (
+            <button 
+              key="all-categories"
+              className={`px-4 py-1 rounded-full text-sm ${
+                selectedCategory === 'All' 
+                  ? 'bg-black text-white' 
+                  : 'bg-gray-200 text-black hover:bg-gray-300'
+              }`}
+              onClick={() => setSelectedCategory('All')}
+            >
+              All
+            </button>
+            {availableCategories?.map(category => (
               <button 
-                key={category} 
+                key={category.id} 
                 className={`px-4 py-1 rounded-full text-sm ${
-                  selectedCategory === category 
+                  selectedCategory === category.id 
                     ? 'bg-black text-white' 
                     : 'bg-gray-200 text-black hover:bg-gray-300'
                 }`}
-                onClick={() => setSelectedCategory(category)}
+                onClick={() => setSelectedCategory(category.id)}
               >
-                {category}
+                {category.name}
               </button>
             ))}
           </div>
@@ -179,45 +187,78 @@ const AllVideosPage: React.FC = () => {
       
       {/* Videos grid */}
       <main className="container mx-auto p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredVideos.map(video => (
-            <Link
-            
-              key={video.id} 
-              className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow cursor-pointer"
-              to={'/videos/1'}
-            //   onClick={() => handleVideoClick(video.id)}
-            >
-              {/* Thumbnail */}
-              <div className="relative">
-                <img 
-                  src={video.thumbnail} 
-                  alt={video.title} 
-                  className="w-full h-48 object-cover"
-                />
-                <div className="absolute bottom-2 right-2 bg-black bg-opacity-80 text-white text-xs px-1 py-0.5 rounded">
-                  {video.duration}
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredVideos.length > 0 ? (
+                filteredVideos.map(video => (
+                  <Link
+                    key={video.id} 
+                    className="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                    to={`/videos/${video.id}`}
+                  >
+                    {/* Thumbnail */}
+                    <div className="relative">
+                      <img 
+                        src={video.thumbnail || thumbnail} 
+                        alt={video.title} 
+                        className="w-full h-48 object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = thumbnail;
+                        }}
+                      />
+                      {video.duration && (
+                        <div className="absolute bottom-2 right-2 bg-black bg-opacity-80 text-white text-xs px-1 py-0.5 rounded">
+                          {video.duration}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Video info */}
+                    <div className="p-3">
+                      <div className="flex">
+                        <img 
+                          src={thumbnail} 
+                          alt={`${video.channel || 'Channel'} avatar`} 
+                          className="w-9 h-9 rounded-full mr-3"
+                        />
+                        <div>
+                          <h3 className="font-semibold text-sm line-clamp-2">{video.title}</h3>
+                          <p className="text-gray-600 text-xs mt-1">{video.channel || video.category?.name}</p>
+                          <p className="text-gray-600 text-xs">{video.views || 0} views • {video.date || 'Unknown date'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8 text-gray-500">
+                  No videos found matching your search criteria.
                 </div>
-              </div>
-              
-              {/* Video info */}
-              <div className="p-3">
-                <div className="flex">
-                  <img 
-                    src={thumbnail} 
-                    alt={`${video.channel} avatar ${video.channelAvatar}`} 
-                    className="w-9 h-9 rounded-full mr-3"
-                  />
-                  <div>
-                    <h3 className="font-semibold text-sm line-clamp-2">{video.title}</h3>
-                    <p className="text-gray-600 text-xs mt-1">{video.channel}</p>
-                    <p className="text-gray-600 text-xs">{video.views} • {video.date}</p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+              )}
+            </div>
+            {filteredVideos.length > 0 && hasNextPage && (
+              <button 
+                onClick={loadMoreVideos}
+                disabled={isLoadingMore}
+                className="w-full mt-4 text-indigo-600 font-medium py-2 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50">
+                {isLoadingMore ? (
+                  <span className="flex items-center justify-center">
+                    <span className="animate-spin h-4 w-4 mr-2 border-t-2 border-b-2 border-indigo-600 rounded-full"></span>
+                    Loading...
+                  </span>
+                ) : (
+                  "Load More Videos"
+                )}
+              </button>
+            )}
+          </>
+        )}
       </main>
     </div>
   );
