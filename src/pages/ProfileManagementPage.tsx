@@ -1,15 +1,24 @@
+//@ts-nocheck
 import React, { useState, useEffect } from 'react';
 import thumbnail from '../assets/images/thumbnail-im.jpg'
+import { useAuth } from '../context/authContext';
+
 // Types
 interface UserProfile {
   id: string;
-  name: string;
   email: string;
-  avatar: string;
-  bio: string;
-  level: string;
-  interests: string[];
-  joinDate: string;
+  first_name: string;
+  last_name: string;
+  is_admin: boolean;
+  created_at: string;
+  role: string;
+  preferred_content: string;
+  study_preference: string;
+  current_year_level: string;
+  previous_year_performance: string;
+  phone_number: string;
+  avatar?: string; // Make this optional
+  interests?: string[]; // Make this optional
 }
 
 interface PasswordReset {
@@ -22,22 +31,30 @@ interface PasswordReset {
 type ModalType = 'deleteAccount' | 'passwordUpdate' | 'dataDownload' | null;
 
 const ProfileManagementPage: React.FC = () => {
-  // Mock user data
+  const { fetchWithAuth, displayNotification, setUser, setAuthToken, setGlobalLoading, setGlobalLoadingText } = useAuth(); 
+  
+  // Initial profile state with the correct structure
   const [profile, setProfile] = useState<UserProfile>({
-    id: 'usr_123456',
-    name: 'Alex Johnson',
-    email: 'alex.johnson@example.com',
+    id: '',
+    email: '',
+    first_name: '',
+    last_name: '',
+    is_admin: false,
+    created_at: '',
+    role: '',
+    preferred_content: '',
+    study_preference: '',
+    current_year_level: '',
+    previous_year_performance: '',
+    phone_number: '',
     avatar: thumbnail,
-    bio: 'Product designer and developer based in San Francisco.',
-    level: '300 Level',
-    interests: ['UI/UX Design', 'React', 'TypeScript', 'Photography'],
-    joinDate: '2023-05-12'
+    interests: []
   });
 
   // Form states
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [profileForm, setProfileForm] = useState({ ...profile });
+  const [profileForm, setProfileForm] = useState<UserProfile>({ ...profile });
   const [passwordForm, setPasswordForm] = useState<PasswordReset>({
     currentPassword: '',
     newPassword: '',
@@ -50,6 +67,31 @@ const ProfileManagementPage: React.FC = () => {
   // Modal state
   const [modalOpen, setModalOpen] = useState<ModalType>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  // Fetch user profile after the token is available or on token update
+  const fetchUserProfile = async () => {
+    try {
+      const data = await fetchWithAuth({
+        method: 'GET',
+        path: `/account/`,
+      });
+      console.log(data);
+      
+      // Ensure interests exist, even if not in API response
+      const profileData = data?.data;
+      if (!profileData.interests) {
+        profileData.interests = [];
+      }
+      if (!profileData.avatar) {
+        profileData.avatar = thumbnail;
+      }
+      
+      setProfile(profileData);
+      setUser(profileData);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   // Reset forms when canceling edit modes
   useEffect(() => {
@@ -64,7 +106,9 @@ const ProfileManagementPage: React.FC = () => {
       });
       setFormErrors({});
     }
-  }, [isEditingProfile, isChangingPassword, profile]);
+
+    fetchUserProfile();
+  }, []);
 
   // Handle profile form changes
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -107,15 +151,25 @@ const ProfileManagementPage: React.FC = () => {
   };
 
   // Handle profile update
-  const handleProfileUpdate = (e: React.FormEvent) => {
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simulate API call
-    setTimeout(() => {
-      setProfile(profileForm);
+    try {
+      // Update with real API call
+      const response = await fetchWithAuth({
+        method: 'PUT',
+        path: '/account/',
+        body: profileForm
+      });
+      
+      setUser(response?.data || profileForm);
+      setProfile(response?.data || profileForm);
       setIsEditingProfile(false);
-    //   toast.success('Profile updated successfully');
-    }, 800);
+      displayNotification?.('success','Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      displayNotification?.('error','Failed to update profile');
+    }
   };
 
   // Handle password form submission - now opens confirmation modal
@@ -128,47 +182,61 @@ const ProfileManagementPage: React.FC = () => {
   };
 
   // Handle password reset after confirmation
-  const handlePasswordReset = () => {
-    // Simulate API call
-    setTimeout(() => {
+  const handlePasswordReset = async () => {
+    try {
+      // Implement actual API call
+      await fetchWithAuth({
+        method: 'POST',
+        path: '/account/change-password/',
+        body: {
+          current_password: passwordForm.currentPassword,
+          new_password: passwordForm.newPassword,
+          confirm_new_password: passwordForm.newPassword
+        }
+      });
+      
       setIsChangingPassword(false);
       setModalOpen(null);
-      // toast.success('Password changed successfully');
+      displayNotification?.('success','Password changed successfully');
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
-    }, 800);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      displayNotification?.('error','Failed to change password');
+    }
   };
 
   // Handle adding a new interest
   const handleAddInterest = () => {
-    if (newInterest.trim() && !profile.interests.includes(newInterest.trim())) {
-      const updatedInterests = [...profile.interests, newInterest.trim()];
+    if (newInterest.trim() && !profile.interests?.includes(newInterest.trim())) {
+      const updatedInterests = [...(profile.interests || []), newInterest.trim()];
       setProfile(prev => ({
         ...prev,
         interests: updatedInterests
       }));
       setNewInterest('');
-    //   toast.success('Interest added');
-    } else if (profile.interests.includes(newInterest.trim())) {
-    //   toast.error('Interest already exists');
+      displayNotification?.('Interest added', 'success');
+    } else if (profile.interests?.includes(newInterest.trim())) {
+      displayNotification?.('error','Interest already exists');
     }
   };
 
   // Handle removing an interest
   const handleRemoveInterest = (interest: string) => {
-    const updatedInterests = profile.interests.filter(item => item !== interest);
+    const updatedInterests = profile.interests?.filter(item => item !== interest) || [];
     setProfile(prev => ({
       ...prev,
       interests: updatedInterests
     }));
-    // toast.success('Interest removed');
+    displayNotification?.( 'success','Interest removed');
   };
 
-  // Format join date
+  // Format date
   const formatDate = (dateString: string): string => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
@@ -177,27 +245,47 @@ const ProfileManagementPage: React.FC = () => {
     }).format(date);
   };
 
+  // Get full name
+  const getFullName = (): string => {
+    return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+  };
+
   // Handle account deletion
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     if (deleteConfirmText === 'DELETE') {
-      // Simulate API call
-      setTimeout(() => {
-        // In a real app, you would redirect to logout page or login page
-        alert('Account deleted successfully');
+      try {
+        // Implement actual API call
+        await fetchWithAuth({
+          method: 'DELETE',
+          path: '/account/'
+        });
+        
         setModalOpen(null);
         setDeleteConfirmText('');
-      }, 800);
+        displayNotification?.('success','Account deleted successfully');
+        setAuthToken?.(null); // Log out user
+      } catch (error) {
+        console.error('Error deleting account:', error);
+        displayNotification?.('error','Failed to delete account');
+      }
     }
   };
 
   // Handle data download
-  const handleDataDownload = () => {
-    // Simulate API call for data download
-    setTimeout(() => {
-      // In a real app, you would start the download process
-      alert('Your data is being prepared and will be available for download soon.');
+  const handleDataDownload = async () => {
+    try {
+      // Implement actual API call
+      await fetchWithAuth({
+        method: 'GET',
+        path: '/account/download-data/'
+      });
+      
+      displayNotification?.('Your data is being prepared and will be available for download soon.', 'success');
       setModalOpen(null);
-    }, 800);
+    } catch (error) {
+      console.error('Error requesting data download:', error);
+      displayNotification?.( 'error','Failed to request data download');
+    }
   };
 
   return (
@@ -218,12 +306,12 @@ const ProfileManagementPage: React.FC = () => {
         >
           Change Password
         </button>
-        <button
+        {/* <button
           className={`py-2 px-4 font-medium ${activeTab === 'interests' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
           onClick={() => setActiveTab('interests')}
         >
           Interests
-        </button>
+        </button> */}
       </div>
       
       {/* Profile Tab */}
@@ -243,11 +331,23 @@ const ProfileManagementPage: React.FC = () => {
             <form onSubmit={handleProfileUpdate}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                   <input
                     type="text"
-                    name="name"
-                    value={profileForm.name}
+                    name="first_name"
+                    value={profileForm.first_name || ''}
+                    onChange={handleProfileChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    name="last_name"
+                    value={profileForm.last_name || ''}
                     onChange={handleProfileChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     required
@@ -259,34 +359,74 @@ const ProfileManagementPage: React.FC = () => {
                   <input
                     type="email"
                     name="email"
-                    value={profileForm.email}
+                    value={profileForm.email || ''}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
                     disabled
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                   <input
                     type="text"
-                    name="level"
-                    value={profileForm.level}
+                    name="phone_number"
+                    value={profileForm.phone_number || ''}
                     onChange={handleProfileChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 
-               
-                
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                  <textarea
-                    name="bio"
-                    value={profileForm.bio}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Year Level</label>
+                  <input
+                    type="text"
+                    name="current_year_level"
+                    disabled
+                    value={profileForm.current_year_level || ''}
                     onChange={handleProfileChange}
-                    rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Previous Year Performance</label>
+                  <input
+                    type="text"
+                    name="previous_year_performance"
+                    disabled
+                    value={profileForm.previous_year_performance || ''}
+                    onChange={handleProfileChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Content</label>
+                  <select
+                    name="preferred_content"
+                    value={profileForm.preferred_content || ''}
+                    onChange={handleProfileChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Preference</option>
+                    <option value="Video">Video</option>
+                    <option value="Article">Article</option>
+                    <option value="Quiz">Quiz</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Study Preference</label>
+                  <select
+                    name="study_preference"
+                    value={profileForm.study_preference || ''}
+                    onChange={handleProfileChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Select Preference</option>
+                    <option value="Morning">Morning</option>
+                    <option value="Night">Night</option>
+                  </select>
                 </div>
               </div>
               
@@ -310,12 +450,12 @@ const ProfileManagementPage: React.FC = () => {
             <div className="flex flex-col md:flex-row">
               <div className="md:w-1/3 mb-6 md:mb-0">
                 <img
-                  src={profile.avatar}
-                  alt={profile.name}
+                  src={profile.avatar || thumbnail}
+                  alt={getFullName()}
                   className="w-32 h-32 rounded-full"
                 />
                 <div className="mt-4 text-sm text-gray-500">
-                  Member since {formatDate(profile.joinDate)}
+                  Member since {formatDate(profile.created_at)}
                 </div>
               </div>
               
@@ -323,7 +463,7 @@ const ProfileManagementPage: React.FC = () => {
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Name</h3>
-                    <p className="mt-1">{profile.name}</p>
+                    <p className="mt-1">{getFullName()}</p>
                   </div>
                   
                   <div>
@@ -332,14 +472,33 @@ const ProfileManagementPage: React.FC = () => {
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Level</h3>
-                    <p className="mt-1">{profile.level || 'Not specified'}</p>
+                    <h3 className="text-sm font-medium text-gray-500">Phone Number</h3>
+                    <p className="mt-1">{profile.phone_number || 'Not provided'}</p>
                   </div>
                   
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Role</h3>
+                    <p className="mt-1">{profile.role || 'User'}</p>
+                  </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">Bio</h3>
-                    <p className="mt-1">{profile.bio || 'No bio provided yet.'}</p>
+                    <h3 className="text-sm font-medium text-gray-500">Current Year Level</h3>
+                    <p className="mt-1">{profile.current_year_level || 'Not specified'}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Previous Year Performance</h3>
+                    <p className="mt-1">{profile.previous_year_performance || 'Not specified'}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Preferred Content</h3>
+                    <p className="mt-1">{profile.preferred_content || 'Not specified'}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Study Preference</h3>
+                    <p className="mt-1">{profile.study_preference || 'Not specified'}</p>
                   </div>
                 </div>
               </div>
@@ -458,7 +617,7 @@ const ProfileManagementPage: React.FC = () => {
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-3">Your interests</h3>
             <div className="flex flex-wrap gap-2">
-              {profile.interests.length > 0 ? (
+              {profile.interests && profile.interests.length > 0 ? (
                 profile.interests.map((interest, index) => (
                   <div
                     key={index}
@@ -559,6 +718,7 @@ const ProfileManagementPage: React.FC = () => {
           </div>
         </div>
       )}
+
 
       {/* Delete Account Confirmation Modal */}
       {modalOpen === 'deleteAccount' && (

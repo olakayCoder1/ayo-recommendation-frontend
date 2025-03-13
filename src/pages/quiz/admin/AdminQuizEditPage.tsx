@@ -1,7 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../../../context/authContext';
 
 // Types
+interface CategoryObject {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+}
+
+interface QuizOption {
+  id: number;
+  option_id: string;
+  text: string;
+  is_correct: boolean;
+}
+
+interface ApiQuestion {
+  id: number;
+  text: string;
+  options: QuizOption[];
+  explanation?: string;
+}
+
 interface QuizQuestion {
   id: string;
   text: string;
@@ -13,10 +39,22 @@ interface QuizQuestion {
   explanation?: string;
 }
 
+interface ApiQuizData {
+  id: string;
+  title: string;
+  description: string;
+  category: CategoryObject;
+  level: 'Easy' | 'Medium' | 'Hard';
+  estimated_time: number;
+  created_at: string;
+  questions: ApiQuestion[];
+  tags: Tag[];
+}
+
 interface QuizFormData {
   title: string;
   description: string;
-  category: string;
+  category_id: string;
   difficulty: 'Easy' | 'Medium' | 'Hard';
   estimatedTime: number;
   tags: string[];
@@ -25,19 +63,27 @@ interface QuizFormData {
 
 const AdminQuizEditPage: React.FC = () => {
   const navigate = useNavigate();
-  const { quizId } = useParams<{ quizId: string }>();
+  const { id } = useParams<{ id: string }>();
+  const { fetchWithAuth, displayNotification } = useAuth();
+  
   const [isLoading, setIsLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<CategoryObject[]>([]);
   
   // State for form data
   const [formData, setFormData] = useState<QuizFormData>({
     title: '',
     description: '',
-    category: '',
+    category_id: '',
     difficulty: 'Medium',
     estimatedTime: 20,
     tags: [],
     questions: []
   });
+  
+  // New state to control question form visibility
+  const [isQuestionFormVisible, setIsQuestionFormVisible] = useState(false);
   
   // State for the current question being edited
   const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion>({
@@ -53,65 +99,133 @@ const AdminQuizEditPage: React.FC = () => {
     explanation: ''
   });
   
-  // State for tag input
-  const [tagInput, setTagInput] = useState('');
-  
-  // Fetch quiz data
+  // Fetch quiz data, tags, and categories
   useEffect(() => {
-    const fetchQuizData = async () => {
+    const fetchData = async () => {
+      setIsLoading(true);
       try {
-        setIsLoading(true);
-        
-        // In a real app, you would fetch from your API
-        // For demo, we'll simulate fetching data
-        setTimeout(() => {
-          // Mock data - in a real application this would come from your API
-          const mockQuizData: QuizFormData = {
-            title: 'React Fundamentals',
-            description: 'Test your knowledge of React core concepts and hooks.',
-            category: 'Web Development',
-            difficulty: 'Medium',
-            estimatedTime: 30,
-            tags: ['React', 'JavaScript', 'Frontend'],
-            questions: [
-              {
-                id: 'q1',
-                text: 'What hook would you use to run side effects in a function component?',
-                options: [
-                  { id: 'a', text: 'useEffect' },
-                  { id: 'b', text: 'useState' },
-                  { id: 'c', text: 'useContext' },
-                  { id: 'd', text: 'useReducer' }
-                ],
-                correctOptionId: 'a',
-                explanation: 'useEffect is used for performing side effects in function components.'
-              },
-              {
-                id: 'q2',
-                text: 'Which is NOT a core principle of React?',
-                options: [
-                  { id: 'a', text: 'Component-based architecture' },
-                  { id: 'b', text: 'Virtual DOM' },
-                  { id: 'c', text: 'Two-way data binding' },
-                  { id: 'd', text: 'Unidirectional data flow' }
-                ],
-                correctOptionId: 'c',
-                explanation: 'React uses one-way data binding, not two-way data binding.'
-              }
-            ]
-          };
-          
-          setFormData(mockQuizData);
-          setIsLoading(false);
-        }, 800); // Simulate network delay
+        await Promise.all([
+          fetchQuizData(),
+          fetchTags(),
+          fetchCategories()
+        ]);
       } catch (error) {
-        console.error('Error fetching quiz data:', error);
+        console.error('Error loading data:', error);
+        displayNotification?.('Error loading quiz data. Please try again.', 'error');
+      } finally {
         setIsLoading(false);
       }
     };
     
-    fetchQuizData();
-  }, [quizId]);
+    fetchData();
+  }, [id]);
+
+  // Transform API quiz data to form data format
+  const transformApiToFormData = (apiData: ApiQuizData): QuizFormData => {
+    // Transform questions from API format to form format
+    const transformedQuestions: QuizQuestion[] = apiData.questions.map(apiQuestion => {
+      // Find the correct option
+      const correctOption = apiQuestion.options.find(opt => opt.is_correct);
+      const correctOptionId = correctOption ? correctOption.option_id : '';
+      
+      // Transform the options
+      const options = apiQuestion.options.map(opt => ({
+        id: opt.option_id,
+        text: opt.text
+      }));
+      
+      return {
+        id: apiQuestion.id.toString(),
+        text: apiQuestion.text,
+        options: options,
+        correctOptionId: correctOptionId,
+        explanation: apiQuestion.explanation || ''
+      };
+    });
+    
+    // Extract tag IDs
+    const tagIds = apiData.tags.map(tag => tag.id);
+    
+    return {
+      title: apiData.title,
+      description: apiData.description,
+      category_id: apiData.category.id,
+      difficulty: apiData.level as 'Easy' | 'Medium' | 'Hard',
+      estimatedTime: apiData.estimated_time,
+      tags: tagIds,
+      questions: transformedQuestions
+    };
+  };
+
+  // Transform form data to API format for submission
+  const transformFormToApiData = (formData: QuizFormData) => {
+    const questions = formData.questions.map(question => {
+      const options = question.options.map(opt => ({
+        option_id: opt.id,
+        text: opt.text,
+        is_correct: opt.id === question.correctOptionId
+      }));
+      
+      return {
+        id: parseInt(question.id) || null,
+        text: question.text,
+        options: options,
+        explanation: question.explanation || ''
+      };
+    });
+    
+    return {
+      title: formData.title,
+      description: formData.description,
+      category_id: formData.category_id,
+      level: formData.difficulty,
+      estimated_time: formData.estimatedTime,
+      tags: formData.tags,
+      questions: questions
+    };
+  };
+
+  async function fetchQuizData() {
+    try {
+      const data = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/quizzes/${id}/`,
+      });
+      
+      // Transform the API response to our form format
+      const transformedData = transformApiToFormData(data);
+      setFormData(transformedData);
+    } catch (error) {
+      console.error('Error fetching quiz data:', error);
+      throw error;
+    }
+  }
+
+  async function fetchTags() {
+    try {
+      const data = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/tags/`,
+      });
+      setAvailableTags(data);
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+      throw error;
+    }
+  }
+
+  async function fetchCategories() {
+    try {
+      const data = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/categories/`,
+      });
+      setAvailableCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      throw error;
+    }
+  }
   
   // Handle form field changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -155,7 +269,7 @@ const AdminQuizEditPage: React.FC = () => {
     if (!currentQuestion.text || 
         currentQuestion.options.some(opt => !opt.text) || 
         !currentQuestion.correctOptionId) {
-      alert('Please fill in all question fields and select a correct answer.');
+      displayNotification?.('error','Please fill in all question fields and select a correct answer.');
       return;
     }
     
@@ -191,6 +305,9 @@ const AdminQuizEditPage: React.FC = () => {
       correctOptionId: '',
       explanation: ''
     });
+
+    // Hide the question form after saving
+    setIsQuestionFormVisible(false);
   };
   
   // Remove question from quiz
@@ -206,44 +323,112 @@ const AdminQuizEditPage: React.FC = () => {
     const questionToEdit = formData.questions.find(q => q.id === questionId);
     if (questionToEdit) {
       setCurrentQuestion(questionToEdit);
+      setIsQuestionFormVisible(true);
     }
   };
+
+  // Show empty question form for adding a new question
+  const handleShowAddQuestionForm = () => {
+    setCurrentQuestion({
+      id: '',
+      text: '',
+      options: [
+        { id: 'a', text: '' },
+        { id: 'b', text: '' },
+        { id: 'c', text: '' },
+        { id: 'd', text: '' }
+      ],
+      correctOptionId: '',
+      explanation: ''
+    });
+    setIsQuestionFormVisible(true);
+  };
+
+  // Cancel question edit/add and hide form
+  const handleCancelQuestionForm = () => {
+    setCurrentQuestion({
+      id: '',
+      text: '',
+      options: [
+        { id: 'a', text: '' },
+        { id: 'b', text: '' },
+        { id: 'c', text: '' },
+        { id: 'd', text: '' }
+      ],
+      correctOptionId: '',
+      explanation: ''
+    });
+    setIsQuestionFormVisible(false);
+  };
   
-  // Add tag
-  const handleAddTag = () => {
-    if (tagInput && !formData.tags.includes(tagInput)) {
+  // Select tag from available tags
+  const handleSelectTag = (tagId: string) => {
+    if (!formData.tags.includes(tagId)) {
       setFormData(prev => ({
         ...prev,
-        tags: [...prev.tags, tagInput]
+        tags: [...prev.tags, tagId]
       }));
-      setTagInput('');
     }
   };
   
   // Remove tag
-  const handleRemoveTag = (tag: string) => {
+  const handleRemoveTag = (tagId: string) => {
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags.filter(t => t !== tag)
+      tags: prev.tags.filter(t => t !== tagId)
     }));
   };
   
+  // Get tag name by id
+  const getTagName = (tagId: string) => {
+    const tag = availableTags.find(t => t.id === tagId);
+    return tag ? tag.name : tagId;
+  };
+  
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate form
-    if (!formData.title || !formData.description || !formData.category || formData.questions.length === 0) {
-      alert('Please fill in all required fields and add at least one question.');
+    if (!formData.title || !formData.description || !formData.category_id || formData.questions.length === 0) {
+      displayNotification?.( 'error','Please fill in all required fields and add at least one question.');
       return;
     }
     
-    // In a real application, you would update the quiz via API here
-    console.log('Quiz data updated:', formData);
+    // Validate that estimatedTime is set
+    if (!formData.estimatedTime) {
+      displayNotification?.( 'error','Please set an estimated time for the quiz.');
+      return;
+    }
     
-    // Mock submission - typically you'd make an API call here
-    alert('Quiz successfully updated!');
-    navigate('/admin/quiz-list');
+    // Set submitting state to true
+    setSubmitting(true);
+    
+    try {
+      // Transform form data to API format
+      const submissionData = transformFormToApiData(formData);
+      
+      console.log('Updating quiz data:', submissionData);
+      
+      await fetchWithAuth({
+        method: 'PUT',
+        path: `/admin/quizzes/${id}/`,
+        body: submissionData
+      });
+      
+      displayNotification?.('Quiz successfully updated!', 'success');
+      navigate('/admin/quiz-list');
+    } catch (error: any) {
+      console.error('Error updating quiz:', error);
+      let errorMessage = 'Error updating quiz. Please try again.';
+      if (error.response?.data) {
+        errorMessage += ' ' + JSON.stringify(error.response.data);
+      }
+      displayNotification?.(errorMessage, 'error');
+    } finally {
+      // Reset submitting state
+      setSubmitting(false);
+    }
   };
   
   if (isLoading) {
@@ -286,19 +471,24 @@ const AdminQuizEditPage: React.FC = () => {
             </div>
             
             <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="category_id" className="block text-sm font-medium text-gray-700 mb-1">
                 Category *
               </label>
-              <input
-                type="text"
-                id="category"
-                name="category"
-                value={formData.category}
+              <select
+                id="category_id"
+                name="category_id"
+                value={formData.category_id}
                 onChange={handleInputChange}
                 className="w-full p-2 border border-gray-300 rounded-md"
                 required
-                placeholder="e.g. Programming, Web Development"
-              />
+              >
+                <option value="">Select a category</option>
+                {availableCategories.map(category => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
             </div>
             
             <div>
@@ -354,50 +544,46 @@ const AdminQuizEditPage: React.FC = () => {
           
           {/* Tags */}
           <div className="mt-4">
-            <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Tags
             </label>
-            <div className="flex">
-              <input
-                type="text"
-                id="tags"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                className="flex-grow p-2 border border-gray-300 rounded-l-md"
-                placeholder="Add a tag and press Enter"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddTag();
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleAddTag}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-r-md hover:bg-gray-300"
-              >
-                Add
-              </button>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {availableTags.map(tag => (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => handleSelectTag(tag.id)}
+                  className={`px-2 py-1 text-xs rounded-full ${
+                    formData.tags.includes(tag.id)
+                      ? 'bg-indigo-500 text-white'
+                      : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                  }`}
+                >
+                  {tag.name}
+                </button>
+              ))}
             </div>
             
             {formData.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.tags.map(tag => (
-                  <span 
-                    key={tag} 
-                    className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full flex items-center"
-                  >
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="ml-1 text-indigo-600 hover:text-indigo-800"
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-1">Selected Tags:</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.tags.map(tagId => (
+                    <span 
+                      key={tagId} 
+                      className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full flex items-center"
                     >
-                      &times;
-                    </button>
-                  </span>
-                ))}
+                      {getTagName(tagId)}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(tagId)}
+                        className="ml-1 text-indigo-600 hover:text-indigo-800"
+                      >
+                        &times;
+                      </button>
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -405,110 +591,110 @@ const AdminQuizEditPage: React.FC = () => {
         
         {/* Questions Section */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-bold mb-4">Questions</h2>
-          
-          {/* Question Editor */}
-          <div className="border border-gray-200 rounded-lg p-4 mb-6">
-            <h3 className="text-lg font-medium mb-3">
-              {currentQuestion.id ? 'Edit Question' : 'Add New Question'}
-            </h3>
-            
-            <div className="mb-4">
-              <label htmlFor="question-text" className="block text-sm font-medium text-gray-700 mb-1">
-                Question Text *
-              </label>
-              <textarea
-                id="question-text"
-                name="text"
-                value={currentQuestion.text}
-                onChange={handleQuestionChange}
-                rows={2}
-                className="w-full p-2 border border-gray-300 rounded-md"
-                placeholder="Enter your question here..."
-                required
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Options *
-              </label>
-              <div className="space-y-3">
-                {currentQuestion.options.map(option => (
-                  <div key={option.id} className="flex items-center">
-                    <input
-                      type="radio"
-                      id={`option-${option.id}`}
-                      name="correctOption"
-                      value={option.id}
-                      checked={currentQuestion.correctOptionId === option.id}
-                      onChange={handleCorrectOptionChange}
-                      className="mr-2"
-                    />
-                    <label htmlFor={`option-${option.id}`} className="mr-2 w-8">
-                      {option.id.toUpperCase()}.
-                    </label>
-                    <input
-                      type="text"
-                      value={option.text}
-                      onChange={(e) => handleOptionChange(option.id, e.target.value)}
-                      className="flex-grow p-2 border border-gray-300 rounded-md"
-                      placeholder={`Option ${option.id.toUpperCase()}`}
-                      required
-                    />
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Select the radio button next to the correct answer.
-              </p>
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="explanation" className="block text-sm font-medium text-gray-700 mb-1">
-                Explanation (Optional)
-              </label>
-              <textarea
-                id="explanation"
-                name="explanation"
-                value={currentQuestion.explanation || ''}
-                onChange={handleQuestionChange}
-                rows={2}
-                className="w-full p-2 border border-gray-300 rounded-md"
-                placeholder="Explain why the correct answer is right (shown after answering)"
-              />
-            </div>
-            
-            <div className="flex justify-end gap-2">
-              {currentQuestion.id && (
-                <button
-                  type="button"
-                  onClick={() => setCurrentQuestion({
-                    id: '',
-                    text: '',
-                    options: [
-                      { id: 'a', text: '' },
-                      { id: 'b', text: '' },
-                      { id: 'c', text: '' },
-                      { id: 'd', text: '' }
-                    ],
-                    correctOptionId: '',
-                    explanation: ''
-                  })}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
-                >
-                  Cancel Edit
-                </button>
-              )}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">Questions</h2>
+            {!isQuestionFormVisible && (
               <button
                 type="button"
-                onClick={handleAddQuestion}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                onClick={handleShowAddQuestionForm}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
               >
-                {currentQuestion.id ? 'Update Question' : 'Add Question'}
+                Add New Question
               </button>
-            </div>
+            )}
           </div>
+          
+          {/* Question Editor - Only shown when adding or editing */}
+          {isQuestionFormVisible && (
+            <div className="border border-gray-200 rounded-lg p-4 mb-6">
+              <h3 className="text-lg font-medium mb-3">
+                {currentQuestion.id ? 'Edit Question' : 'Add New Question'}
+              </h3>
+              
+              <div className="mb-4">
+                <label htmlFor="question-text" className="block text-sm font-medium text-gray-700 mb-1">
+                  Question Text *
+                </label>
+                <textarea
+                  id="question-text"
+                  name="text"
+                  value={currentQuestion.text}
+                  onChange={handleQuestionChange}
+                  rows={2}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  placeholder="Enter your question here..."
+                  required
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Options *
+                </label>
+                <div className="space-y-3">
+                  {currentQuestion.options.map(option => (
+                    <div key={option.id} className="flex items-center">
+                      <input
+                        type="radio"
+                        id={`option-${option.id}`}
+                        name="correctOption"
+                        value={option.id}
+                        checked={currentQuestion.correctOptionId === option.id}
+                        onChange={handleCorrectOptionChange}
+                        className="mr-2"
+                      />
+                      <label htmlFor={`option-${option.id}`} className="mr-2 w-8">
+                        {option.id}.
+                      </label>
+                      <input
+                        type="text"
+                        value={option.text}
+                        onChange={(e) => handleOptionChange(option.id, e.target.value)}
+                        className="flex-grow p-2 border border-gray-300 rounded-md"
+                        placeholder={`Option ${option.id}`}
+                        required
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-500 mt-1">
+                  Select the radio button next to the correct answer.
+                </p>
+              </div>
+              
+              <div className="mb-4">
+                <label htmlFor="explanation" className="block text-sm font-medium text-gray-700 mb-1">
+                  Explanation (Optional)
+                </label>
+                <textarea
+                  id="explanation"
+                  name="explanation"
+                  value={currentQuestion.explanation || ''}
+                  onChange={handleQuestionChange}
+                  rows={2}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  placeholder="Explain why the correct answer is right (shown after answering)"
+                />
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancelQuestionForm}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddQuestion}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                >
+                  {currentQuestion.id ? 'Update Question' : 'Add Question'}
+                </button>
+              </div>
+            </div>
+          )}
           
           {/* Question List */}
           {formData.questions.length > 0 ? (
@@ -524,7 +710,7 @@ const AdminQuizEditPage: React.FC = () => {
                         {question.options.map(option => (
                           <div key={option.id} className="flex items-center">
                             <span className={`w-6 ${option.id === question.correctOptionId ? 'font-bold text-green-600' : ''}`}>
-                              {option.id.toUpperCase()}.
+                              {option.id}.
                             </span>
                             <span>{option.text}</span>
                             {option.id === question.correctOptionId && (
@@ -561,7 +747,7 @@ const AdminQuizEditPage: React.FC = () => {
             </div>
           ) : (
             <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
-              <p className="text-gray-500">No questions added yet. Add your first question above.</p>
+              <p className="text-gray-500">No questions added yet. Use the "Add New Question" button to get started.</p>
             </div>
           )}
         </div>
@@ -572,15 +758,26 @@ const AdminQuizEditPage: React.FC = () => {
             type="button"
             onClick={() => navigate('/admin/quiz-list')}
             className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md mr-2 hover:bg-gray-50"
+            disabled={submitting}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-            disabled={formData.questions.length === 0}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center"
+            disabled={formData.questions.length === 0 || submitting}
           >
-            Save Changes
+            {submitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
           </button>
         </div>
       </form>

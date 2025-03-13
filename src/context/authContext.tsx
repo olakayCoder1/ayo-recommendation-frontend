@@ -15,6 +15,7 @@ interface AuthContextType {
   displayNotification: (type: string, text: any) => void;
   setUser: React.Dispatch<React.SetStateAction<any>>;
   BACKEND_URL:string;
+  setAuthToken:React.Dispatch<React.SetStateAction<any>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -275,7 +276,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setGlobalLoading,
     globalLoadingText,
     setGlobalLoadingText,
-    BACKEND_URL
+    BACKEND_URL,
+    setAuthToken
   };
 
   return (

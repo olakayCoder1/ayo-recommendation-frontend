@@ -4,7 +4,7 @@ import { useAuth } from '../context/authContext';
 import InputField from '../components/InputField'; // Import the reusable InputField component
 
 const Register: React.FC = () => {
-  const { fetchWithAuth, displayNotification, setUser , setGlobalLoading, setGlobalLoadingText } = useAuth(); // Assuming 'authToken' is provided from context
+  const { fetchWithAuth, displayNotification, setUser,setAuthToken , setGlobalLoading, setGlobalLoadingText } = useAuth(); // Assuming 'authToken' is provided from context
   const navigate = useNavigate();
 
   // State to hold form data
@@ -45,6 +45,7 @@ const Register: React.FC = () => {
         body: formData,
       });
 
+      setAuthToken(response?.data?.tokens)
       localStorage.setItem('tokens', JSON.stringify(response?.data?.tokens));
       setUser(response?.data?.user)
 
