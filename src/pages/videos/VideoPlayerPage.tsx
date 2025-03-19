@@ -1,304 +1,351 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/authContext';
 
-// Types
-interface Author {
-  name: string;
-  avatar: string;
-}
-
-interface Article {
+interface Video {
   id: string;
   title: string;
-  excerpt: string;
-  author: Author;
-  publishedDate: string;
-  readingTime: number;
-  category: string;
-  imageUrl?: string;
+  description: string;
+  video_file: string;
+  thumbnail: string;
+  views: number;
+  created_at: string;
+  average_rating: number | null;
   likes_count: number;
+  has_rated: boolean;
   has_liked: boolean;
-}
-
-interface ApiResponse {
-  metadata: {
-    count: number;
-    page: number;
-    page_size: number;
-    next: string | null;
-    previous: string | null;
+  category: {
+    id: string;
+    name: string;
+    slug: string;
   };
-  results: ApiArticle[];
+  tags: {
+    id: string;
+    name: string;
+  }[];
 }
 
-interface ApiArticle {
+interface RelatedVideo {
   id: string;
   title: string;
-  authors: string;
-  publish_date: string;
-  text: string;
-  top_image: string;
-  meta_description: string;
-  likes_count: number;
-  has_liked: boolean;
+  thumbnail: string;
+  views: number;
+  created_at: string;
+  duration?: string;
+  channel?: string;
 }
 
-const ArticlesList: React.FC = () => {
+const VideoPlayerPage: React.FC = () => {
+  const { videoId } = useParams<{ videoId: string }>();
+  const [video, setVideo] = useState<Video | null>(null);
+  const [relatedVideos, setRelatedVideos] = useState<RelatedVideo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showRatingPopup, setShowRatingPopup] = useState(false);
+  const [rating, setRating] = useState<number>(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { fetchWithAuth, displayNotification } = useAuth();
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [hasPassedHalfway, setHasPassedHalfway] = useState(false);
 
-  // Function to transform API articles to our Article format
-  const transformArticles = (apiArticles: ApiArticle[]): Article[] => {
-    return apiArticles.map(article => {
-      // Extract excerpt from text or meta_description
-      const excerpt = article.meta_description || article.text.substring(0, 150) + '...';
-      
-      // Format date
-      const publishDate = new Date(article.publish_date);
-      const formattedDate = publishDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
+  // Fetch video data when component mounts or videoId changes
+  useEffect(() => {
+    const fetchVideoData = async () => {
+      if (!videoId) return;
 
-      // Create author object (using authors string from API)
-      const author: Author = {
-        name: article.authors || 'Unknown Author',
-        avatar: '/api/placeholder/40/40' // Placeholder avatar
-      };
-
-      // Calculate reading time (rough estimate: 200 words per minute)
-      const wordCount = article.text.split(' ').length;
-      const readingTime = Math.max(1, Math.round(wordCount / 200));
-
-      return {
-        id: article.id,
-        title: article.title,
-        excerpt,
-        author,
-        publishedDate: formattedDate,
-        readingTime,
-        category: 'Article', // Default category, could be improved
-        imageUrl: article.top_image || undefined,
-        likes_count: article.likes_count,
-        has_liked: article.has_liked
-      };
-    });
-  };
-
-  // Fetch articles from API
-  const fetchArticles = async (page: number = 1) => {
-    try {
       setLoading(true);
-      
-      const response = await fetchWithAuth({
-        method: 'GET',
-        path: `/admin/articles/?page=${page}`,
-      });
-      
-      const data: ApiResponse = response;
-      const transformedArticles = transformArticles(data.results);
-      
-      if (page === 1) {
-        setArticles(transformedArticles);
-      } else {
-        setArticles(prevArticles => [...prevArticles, ...transformedArticles]);
+      try {
+        const data = await fetchWithAuth({
+          method: 'GET',
+          path: `/admin/videos/${videoId}/`,
+        });
+        setVideo(data);
+        
+      } catch (err) {
+        console.error('Error fetching video:', err);
+        setError('Failed to load video. Please try again later.');
+        displayNotification("error", "Failed to load video.");
+      } finally {
+        setLoading(false);
       }
-      
-      setNextPageUrl(data.metadata.next);
-      setCurrentPage(data.metadata.page);
-      setLoading(false);
+
+      fetchRelatedVideos(videoId);
+    };
+
+    fetchVideoData();
+  }, [videoId]);
+
+  // Fetch related videos based on category
+  const fetchRelatedVideos = async (videoId: string) => {
+    try {
+      const data = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/videos/${videoId}/related/?limit=5`,
+      });
+      setRelatedVideos(data?.data);
     } catch (err) {
-      console.error('Error fetching articles:', err);
-      displayNotification("error", "Failed to load articles.");
-      setLoading(false);
+      console.error('Error fetching related videos:', err);
+      displayNotification("error", "Failed to load related videos.");
     }
   };
 
-  // Handle load more button click
-  const handleLoadMore = () => {
-    if (nextPageUrl) {
-      fetchArticles(currentPage + 1);
+  // Handle video time update to show rating popup
+  const handleTimeUpdate = () => {
+    if (videoRef.current && !hasPassedHalfway && !video?.has_rated) {
+      const currentTime = videoRef.current.currentTime;
+      const duration = videoRef.current.duration;
+      
+      if (currentTime > duration * 0.8) {
+        setShowRatingPopup(true);
+        setHasPassedHalfway(true);
+      }
     }
   };
 
-  // Handle article like
-  const handleLike = async (articleId: string) => {
+  // Handle rating submission
+  const handleRateVideo = async () => {
+    if (!videoId || rating === 0) return;
+
     try {
       await fetchWithAuth({
         method: 'POST',
-        path: `/admin/articles/${articleId}/like/`,
+        path: `/admin/videos/${videoId}/rate/`,
+        body: { rating },
       });
-
-      // Update like count and status in state
-      setArticles(prevArticles => 
-        prevArticles.map(article => {
-          if (article.id === articleId) {
-            return {
-              ...article,
-              likes_count: article.has_liked ? article.likes_count - 1 : article.likes_count + 1,
-              has_liked: !article.has_liked
-            };
-          }
-          return article;
-        })
-      );
-
+      
+      displayNotification("success", "Thank you for rating this video!");
+      setShowRatingPopup(false);
+      
+      // Update video data to reflect the new rating
+      const updatedVideo = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/videos/${videoId}/`,
+      });
+      setVideo(updatedVideo);
     } catch (err) {
-      console.error('Error liking article:', err);
-      displayNotification("error", "Failed to like article.");
+      console.error('Error rating video:', err);
     }
   };
 
-  // Initial fetch on component mount
-  useEffect(() => {
-    fetchArticles();
-  }, []);
+  // Handle like/dislike
+  const handleLikeVideo = async (liked: boolean) => {
+    if (!videoId) return;
+
+    try {
+      await fetchWithAuth({
+        method: 'POST',
+        path: `/admin/videos/${videoId}/like/`,
+        body: { },
+      });
+      
+      // Update video data to reflect the new like status
+      const updatedVideo = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/videos/${videoId}/`,
+      });
+      setVideo(updatedVideo);
+      
+      displayNotification("success", liked ? "Video liked!" : "Video disliked!");
+    } catch (err) {
+      console.error('Error liking/disliking video:', err);
+    }
+  };
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else if (diffDays < 30) {
+      const weeks = Math.floor(diffDays / 7);
+      return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+    } else if (diffDays < 365) {
+      const months = Math.floor(diffDays / 30);
+      return `${months} ${months === 1 ? 'month' : 'months'} ago`;
+    } else {
+      const years = Math.floor(diffDays / 365);
+      return `${years} ${years === 1 ? 'year' : 'years'} ago`;
+    }
+  };
+
+  // Format view count
+  const formatViewCount = (views: number) => {
+    if (views >= 1000000) {
+      return `${(views / 1000000).toFixed(1)}M views`;
+    } else if (views >= 1000) {
+      return `${(views / 1000).toFixed(1)}K views`;
+    } else {
+      return `${views} views`;
+    }
+  };
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+          </div>;
+  }
+
+  if (error || !video) {
+    return <div className="flex items-center justify-center h-screen">{error || 'Video not found'}</div>;
+  }
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-gray-50">
-      <div className="space-y-8">
-        {/* Featured Section - Show only if we have articles */}
-        {articles.length > 0 && (
-          <div className="border-b pb-8">
-            <div className="text-sm text-gray-500 mb-4">FEATURED STORY</div>
-            <Link to={`/articles/${articles[0].id}`} className="flex flex-col md:flex-row gap-6">
-              {articles[0].imageUrl && (
-                <img 
-                  src={articles[0].imageUrl} 
-                  alt={articles[0].title} 
-                  className="w-full md:w-1/2 h-56 object-cover rounded-lg"
-                />
-              )}
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold mb-2 hover:text-gray-700 cursor-pointer">
-                  {articles[0].title}
-                </h2>
-                <p className="text-gray-600 mb-4">{articles[0].excerpt}</p>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <img 
-                      src={articles[0].author.avatar} 
-                      alt={articles[0].author.name} 
-                      className="w-8 h-8 rounded-full mr-2"
-                    />
-                    <div className="text-sm">
-                      <div className="font-medium">{articles[0].author.name}</div>
-                      <div className="text-gray-500">
-                        {articles[0].publishedDate} · {articles[0].readingTime} min read · {articles[0].category}
-                      </div>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleLike(articles[0].id);
-                    }}
-                    className="flex items-center text-gray-500 hover:text-red-500"
-                  >
-                    <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      className="h-5 w-5" 
-                      fill={articles[0].has_liked ? "currentColor" : "none"} 
-                      viewBox="0 0 24 24" 
-                      stroke="currentColor"
-                      strokeWidth={articles[0].has_liked ? "0" : "1.5"}
-                      style={{ color: articles[0].has_liked ? '#ef4444' : 'inherit' }}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                    </svg>
-                    <span className="ml-1">{articles[0].likes_count}</span>
-                  </button>
-                </div>
+    <div className="flex flex-col lg:flex-row bg-gray-100 min-h-screen">
+      {/* Main Content */}
+      <div className="lg:w-2/3 p-4">
+        {/* Video Player */}
+        <div className="bg-black relative pt-0 pb-0 h-0" style={{ paddingBottom: '56.25%' }}>
+          <video 
+            ref={videoRef}
+            className="absolute inset-0 w-full h-full object-cover"
+            src={video.video_file}
+            poster={video.thumbnail}
+            controls
+            autoPlay
+            onTimeUpdate={handleTimeUpdate}
+          />
+        </div>
+
+        {/* Video Info */}
+        <div className="mt-4">
+          <h1 className="text-xl font-bold">{video.title}</h1>
+          <div className="flex items-center justify-between mt-2">
+            <div className="text-gray-600">
+              {formatViewCount(video.views)} • {formatDate(video.created_at)}
+            </div>
+            <div className="flex space-x-4">
+              <div className="flex items-center">
+                <button 
+                  className={`flex items-center ${video.has_liked ? 'text-blue-600' : 'text-gray-700'}`}
+                  onClick={() => handleLikeVideo(true)}
+                >
+                  <svg className="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                  </svg>
+                  {video.likes_count} Like{video.likes_count !== 1 ? 's' : ''}
+                </button>
               </div>
-            </Link>
-          </div>
-        )}
-        
-        {/* Article List */}
-        {articles.length > (articles.length > 0 ? 1 : 0) ? (
-          <div className="space-y-8">
-            <h3 className="text-xl font-semibold mb-4">Latest Articles</h3>
-            
-            {articles.slice(articles.length > 0 ? 1 : 0).map(article => (
-              <Link to={`/articles/${article.id}`} key={article.id} className="flex flex-col md:flex-row gap-6 border-b pb-8">
-                <div className="flex-1">
-                  <h2 className="text-xl font-bold mb-2 hover:text-gray-700 cursor-pointer">
-                    {article.title}
-                  </h2>
-                  <p className="text-gray-600 mb-4">{article.excerpt}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <img 
-                        src={article.author.avatar} 
-                        alt={article.author.name} 
-                        className="w-8 h-8 rounded-full mr-2"
-                      />
-                      <div className="text-sm">
-                        <div className="font-medium">{article.author.name}</div>
-                        <div className="text-gray-500">
-                          {article.publishedDate} · {article.readingTime} min read · {article.category}
-                        </div>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleLike(article.id);
-                      }}
-                      className="flex items-center text-gray-500 hover:text-red-500"
-                    >
-                      <svg 
-                        xmlns="http://www.w3.org/2000/svg" 
-                        className="h-5 w-5" 
-                        fill={article.has_liked ? "currentColor" : "none"} 
-                        viewBox="0 0 24 24" 
-                        stroke="currentColor"
-                        strokeWidth={article.has_liked ? "0" : "1.5"}
-                        style={{ color: article.has_liked ? '#ef4444' : 'inherit' }}
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                      </svg>
-                      <span className="ml-1">{article.likes_count}</span>
-                    </button>
-                  </div>
+              <div className="flex items-center">
+                <button 
+                  className={`flex items-center ${video.has_liked === false ? 'text-red-600' : 'text-gray-700'}`}
+                  onClick={() => handleLikeVideo(false)}
+                >
+                  <svg className="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M18 9.5a1.5 1.5 0 11-3 0v-6a1.5 1.5 0 013 0v6zM14 9.667v-5.43a2 2 0 00-1.105-1.79l-.05-.025A4 4 0 0011.055 2h-5.416a2 2 0 00-1.962 1.608l-1.2 6A2 2 0 004.44 12H8v4a2 2 0 002 2 1 1 0 001-1v-.667a4 4 0 01.8-2.4l1.4-1.866a4 4 0 00.8-2.4z" />
+                  </svg>
+                  Dislike
+                </button>
+              </div>
+              {video.average_rating && (
+                <div className="flex items-center text-yellow-500">
+                  <svg className="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  {video.average_rating.toFixed(1)}
                 </div>
-                {article.imageUrl && (
-                  <img 
-                    src={article.imageUrl} 
-                    alt={article.title} 
-                    className="w-full md:w-1/3 h-40 object-cover rounded-lg"
-                  />
-                )}
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Tags */}
+        {video.tags.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {video.tags.map(tag => (
+              <Link 
+                key={tag.id} 
+                to={`/tags/${tag.name.toLowerCase()}`}
+                className="bg-gray-300 hover:bg-gray-400 px-2 py-1 rounded-full text-xs"
+              >
+                {tag.name}
               </Link>
             ))}
           </div>
-        ) : null}
-        
-        {/* Loading indicator */}
-        {loading && <div className="text-center py-4">Loading articles...</div>}
-        
-        {/* Load More Button */}
-        {nextPageUrl && !loading && (
-          <button 
-            className="w-full mt-4 text-indigo-600 font-medium py-2 hover:bg-indigo-50 rounded-lg transition-colors"
-            onClick={handleLoadMore}
-          >
-            Load more articles
-          </button>
         )}
-        
-        {/* No articles message */}
-        {!loading && articles.length === 0 && (
-          <div className="text-center py-8 text-gray-500">No articles found</div>
-        )}
+
+        {/* Description */}
+        <div className="mt-4 bg-gray-200 p-4 rounded">
+          <p className="text-sm">{video.description}</p>
+        </div>
       </div>
+
+      {/* Related Videos */}
+      <div className="lg:w-1/3 p-4">
+        <h2 className="text-lg font-bold mb-4">Related Videos</h2>
+        <div className="space-y-4">
+          {relatedVideos.map(relatedVideo => (
+            <Link 
+              key={relatedVideo.id} 
+              className="flex cursor-pointer hover:bg-gray-200 p-2 rounded"
+              to={`/videos/${relatedVideo.id}`}
+            >
+              <div className="relative w-40 h-24 flex-shrink-0">
+                <img 
+                  src={relatedVideo.thumbnail} 
+                  alt={relatedVideo.title} 
+                  className="w-full h-full object-cover"
+                />
+                {relatedVideo.duration && (
+                  <div className="absolute bottom-1 right-1 bg-black text-white text-xs px-1 rounded">
+                    {relatedVideo.duration}
+                  </div>
+                )}
+              </div>
+              <div className="ml-2 flex-grow">
+                <h3 className="font-medium text-sm line-clamp-2">{relatedVideo.title}</h3>
+                <p className="text-gray-600 text-xs mt-1">{relatedVideo.channel || video.category.name}</p>
+                <p className="text-gray-600 text-xs">
+                  {formatViewCount(relatedVideo.views)} • {formatDate(relatedVideo.created_at)}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* Rating Popup */}
+      {showRatingPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Rate this video</h2>
+            <p className="mb-4">We'd love to know what you think of this video!</p>
+            
+            <div className="flex justify-center mb-6">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  className="text-3xl px-2 focus:outline-none"
+                  onClick={() => setRating(star)}
+                >
+                  <span className={star <= rating ? "text-yellow-500" : "text-gray-300"}>★</span>
+                </button>
+              ))}
+            </div>
+            
+            <div className="flex justify-end space-x-4">
+              <button
+                className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100"
+                onClick={() => setShowRatingPopup(false)}
+              >
+                Skip
+              </button>
+              <button
+                className={`px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 ${rating === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={handleRateVideo}
+                disabled={rating === 0}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default ArticlesList;
+export default VideoPlayerPage;
