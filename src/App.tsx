@@ -46,7 +46,7 @@ function App() {
           <Route path="/quiz/new/*" element={<PrivateRoute element={<AddQuizQuestionFormPage />} />} />
           <Route path="/home/*" element={<PrivateRoute element={<StudentDashboard />} />} />
           <Route path="/videos/" element={<PrivateRoute element={<AllVideosPage />} />} />
-          <Route path="/videos/:id" element={<PrivateRoute element={<VideoPlayerPage />} />} />
+          <Route path="/videos/:videoId" element={<PrivateRoute element={<VideoPlayerPage />} />} />
           <Route path="/account/*" element={<PrivateRoute element={<ProfileManagementPage />} />} />
           <Route path="/articles" element={<PrivateRoute element={<ArticlesList />} />} />
           <Route path="/articles/:id" element={<PrivateRoute element={<ArticleReadingPage />} />} />

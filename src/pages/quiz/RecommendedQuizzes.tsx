@@ -294,12 +294,12 @@ const RecommendedQuizzes: React.FC = () => {
                     </div>
                     <div className="mt-6 flex items-center justify-between">
                       <div className="flex items-center">
-                        <img 
+                        {/* <img 
                           src={filteredQuizzes[0].author?.avatar || "https://via.placeholder.com/32"}
                           alt={filteredQuizzes[0].author?.name || "Author"} 
                           className="w-8 h-8 rounded-full mr-2"
                         />
-                        <span className="text-sm text-gray-700">{filteredQuizzes[0].author?.name || "Unknown Author"}</span>
+                        <span className="text-sm text-gray-700">{filteredQuizzes[0].author?.name || "Unknown Author"}</span> */}
                       </div>
                       <button onClick={() => navigate(`${filteredQuizzes[0].id}`)} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition">
                         Start Quiz
@@ -357,12 +357,12 @@ const RecommendedQuizzes: React.FC = () => {
                   
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      <img 
+                      {/* <img 
                         src={quiz.author?.avatar || "https://via.placeholder.com/32"}
                         alt={quiz.author?.name || "Author"} 
                         className="w-6 h-6 rounded-full mr-2"
                       />
-                      <span className="text-xs text-gray-700">{quiz.author?.name || "Unknown Author"}</span>
+                      <span className="text-xs text-gray-700">{quiz.author?.name || "Unknown Author"}</span> */}
                     </div>
                     <button onClick={() => navigate(`${quiz.id}`)} className="px-3 py-1 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 transition">
                       Start Quiz
