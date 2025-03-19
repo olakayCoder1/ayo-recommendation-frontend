@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Video, BookOpen } from 'lucide-react';
-import thumbnail from '../assets/images/thumbnail-im.jpg'
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 
