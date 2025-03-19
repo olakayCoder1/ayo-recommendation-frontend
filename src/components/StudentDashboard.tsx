@@ -47,57 +47,11 @@ const StudentDashboard: React.FC = () => {
   const [isArticleLoading, setIsArticleLoading] = useState(true);
 
   const [recommendedVideos, setRecommendedVideos] = useState<VideoRecommendation[]>([
-    {
-      id: 1,
-      title: "Introduction to Machine Learning Algorithms",
-      thumbnail: thumbnail,
-      duration: "18:24",
-      instructor: "Dr. Sarah Chen",
-      views: "1.2K"
-    },
-    {
-      id: 2,
-      title: "Data Structures Explained Simply",
-      thumbnail: thumbnail,
-      duration: "24:15",
-      instructor: "Prof. Michael Reed",
-      views: "986"
-    },
-    {
-      id: 3,
-      title: "Web Development Fundamentals",
-      thumbnail: thumbnail,
-      duration: "32:10",
-      instructor: "Jamie Taylor",
-      views: "2.5K"
-    }
+  
   ]);
 
   const [recommendedArticles, setRecommendedArticles] = useState<ArticleRecommendation[]>([
-    {
-      id: 1,
-      title: "How to Ace Your Technical Interviews",
-      image: thumbnail,
-      author: "Career Services",
-      readTime: "8 min read",
-      date: "Mar 2, 2025"
-    },
-    {
-      id: 2,
-      title: "The Future of AI in Education",
-      image: thumbnail,
-      author: "Tech Insights",
-      readTime: "12 min read",
-      date: "Feb 28, 2025"
-    },
-    {
-      id: 3,
-      title: "Study Techniques That Actually Work",
-      image: thumbnail,
-      author: "Learning Lab",
-      readTime: "6 min read",
-      date: "Feb 25, 2025"
-    }
+  
   ]);
 
 
