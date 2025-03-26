@@ -129,19 +129,19 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                   {/* Collapsible Video menu with subitems */}
                   <SideNavbarItem 
                     icon={<MdOutlineVideoCameraBack />} 
-                    label="Video M" 
+                    label="Videos" 
                     subItems={[
-                      { to: "/admin/video-list", label: "Video List" },
-                      { to: "/admin/video-upload", label: "Video Upload" }
+                      { to: "/admin/video-list", label: "All" },
+                      { to: "/admin/video-upload", label: "Upload" }
                     ]}
                   />
                   {/* Collapsible Quiz menu with subitems */}
                   <SideNavbarItem 
                     icon={<MdOutlineQuiz />} 
-                    label="Quiz M" 
+                    label="Quizzes" 
                     subItems={[
-                      { to: "/admin/quiz-list", label: "Quiz List" },
-                      { to: "/admin/quiz-create", label: "Create Quiz" },
+                      { to: "/admin/quiz-list", label: "All" },
+                      { to: "/admin/quiz-create", label: "Create" },
                       // { to: "/admin/quiz-results", label: "Quiz Results" }
                     ]}
                   />
