@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../context/authContext';
-import { BookmarkPlus, Share2, ThumbsUp, MessageSquare } from 'lucide-react';
+import { BookmarkPlus, Share2, ThumbsUp, MessageSquare, BookmarkMinus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Article {
@@ -16,6 +16,8 @@ interface Article {
   has_liked: boolean;
   keywords: string;
   source_url: string;
+  has_bookmarked:boolean;
+  bookmarks_count:number;
 }
 
 const ArticleReadingPage: React.FC = () => {
@@ -88,6 +90,42 @@ const ArticleReadingPage: React.FC = () => {
     }
   };
 
+
+  const handleBookmark = async () => {
+    if (!article) return;
+    
+    try {
+      if (article.has_bookmarked) {
+        // Unbookmark
+        await fetchWithAuth({
+          method: 'DELETE',
+          path: `/admin/articles/${id}/unbookmark/`,
+        });
+      } else {
+        // Bookmark
+        await fetchWithAuth({
+          method: 'POST',
+          path: `/admin/articles/${id}/bookmark/`,
+        });
+      }
+      
+      // Update local state
+      setArticle(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          has_bookmarked: !prev.has_bookmarked,
+          bookmarks_count: prev.has_bookmarked 
+            ? prev.bookmarks_count - 1 
+            : prev.bookmarks_count + 1
+        };
+      });
+    } catch (err) {
+      console.error('Error bookmarking article:', err);
+      // Optionally show an error toast or message
+    }
+  };
+
   // Extract paragraphs from the text
   const getParagraphs = (text: string) => {
     return text.split('\n\n').filter(p => p.trim() !== '');
@@ -155,14 +193,37 @@ const ArticleReadingPage: React.FC = () => {
             </div>
             
             <div className="flex space-x-4">
-              <button className="text-gray-500 hover:text-indigo-600">
-                <BookmarkPlus size={20} />
-              </button>
-              <button className="text-gray-500 hover:text-indigo-600">
-                <Share2 size={20} />
-              </button>
+                <button 
+                  onClick={handleBookmark}
+                  className={`text-gray-500 hover:text-indigo-600 ${article.has_bookmarked ? 'text-indigo-600' : ''}`}
+                >
+                  {article.has_bookmarked ? <BookmarkMinus size={20} /> : <BookmarkPlus size={20} />}
+                </button>
             </div>
           </div>
+          {/* Article Footer - add bookmarks count */}
+          <div className="mt-12 pt-6 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={handleLike}
+                  className="flex items-center space-x-1 text-gray-600 hover:text-indigo-600"
+                >
+                  <ThumbsUp size={18} 
+                    className={article.has_liked ? "text-indigo-600" : ""} 
+                  />
+                  <span>{article.likes_count}</span>
+                </button>
+                <button 
+                  onClick={handleBookmark}
+                  className={`flex items-center space-x-1 text-gray-500 hover:text-indigo-600 ${article.has_bookmarked ? 'text-indigo-600' : ''}`}
+                >
+                  {article.has_bookmarked ? <BookmarkMinus size={18} /> : <BookmarkPlus size={18} />}
+                  <span>{article.bookmarks_count}</span>
+                </button>
+              </div>
+            </div>
+        </div>
         </div>
       </div>
       
@@ -188,10 +249,13 @@ const ArticleReadingPage: React.FC = () => {
               />
               <span>{article.likes_count}</span>
             </button>
-            <button className="flex items-center space-x-1 text-gray-600 hover:text-indigo-600">
-              <MessageSquare size={18} />
-              <span>0</span>
-            </button>
+            <button 
+                  onClick={handleBookmark}
+                className={`flex items-center space-x-1 text-gray-500 hover:text-indigo-600 ${article.has_bookmarked ? 'text-indigo-600' : ''}`}
+              >
+                {article.has_bookmarked ? <BookmarkMinus size={18} /> : <BookmarkPlus size={18} />}
+                <span>{article.bookmarks_count}</span>
+              </button>
           </div>
           
           {/* {article.source_url && (

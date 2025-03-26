@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/authContext';
+import { BookmarkIcon } from 'lucide-react';
 
 // Types
 interface Author {
@@ -51,6 +52,7 @@ const ArticlesList: React.FC = () => {
   const [pageLoading, setPageLoading] = useState<boolean>(true);
   const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [viewMode, setViewMode] = useState<'all' | 'bookmarked'>('all')
 
   // Function to transform API articles to our Article format
   const transformArticles = (apiArticles: ApiArticle[]): Article[] => {
@@ -92,9 +94,14 @@ const ArticlesList: React.FC = () => {
   };
 
   // Fetch articles from API
-  const fetchArticles = async (page: number = 1) => {
+  const fetchArticles = async (page: number = 1, newOne:boolean=false) => {
     try {
-      setLoading(true);
+      if(newOne){
+        setPageLoading(true)
+      }else{
+        setLoading(true);
+      }
+      
       const response = await fetchWithAuth({
         method: 'GET',
         path: `/admin/articles/?page=${page}&page_size=5`,
@@ -115,6 +122,12 @@ const ArticlesList: React.FC = () => {
     } catch (err) {
       console.error('Error fetching articles:', err);
       setLoading(false);
+    }finally{
+      if(newOne){
+        setPageLoading(false)
+      }else{
+        setLoading(false);
+      }
     }
   };
 
@@ -157,6 +170,35 @@ const ArticlesList: React.FC = () => {
     }
   };
 
+  // New method to fetch bookmarked articles
+  const fetchBookmarkedArticles = async (page: number = 1) => {
+    try {
+      setPageLoading(true);
+      const response = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/articles/bookmarked/?page=${page}&page_size=5`,
+      });
+      
+      const data: ApiResponse = response;
+      const transformedArticles = transformArticles(data.results);
+      
+      if (page === 1) {
+        setArticles(transformedArticles);
+      } else {
+        setArticles(prevArticles => [...prevArticles, ...transformedArticles]);
+      }
+      
+      setNextPageUrl(data.metadata.next);
+      setCurrentPage(data.metadata.page);
+      setPageLoading(false);
+    } catch (err) {
+      console.error('Error fetching bookmarked articles:', err);
+      setPageLoading(false);
+      displayNotification('error', 'Failed to fetch bookmarked articles');
+    }
+  };
+
+
   // Initial fetch on component mount
   useEffect(() => {
     const fetching = () => {
@@ -167,8 +209,35 @@ const ArticlesList: React.FC = () => {
     fetching();
   }, []);
 
+
+  // Toggle between all articles and bookmarked articles
+  const toggleBookmarkedView = () => {
+    if (viewMode === 'all') {
+      setViewMode('bookmarked');
+      fetchBookmarkedArticles();
+    } else {
+      setViewMode('all');
+      fetchArticles();
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 bg-gray-50">
+      <div className="flex justify-end mb-6">
+        <button 
+          onClick={toggleBookmarkedView}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+            viewMode === 'bookmarked' 
+              ? 'bg-indigo-600 text-white hover:bg-indigo-700' 
+              : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+          }`}
+        >
+          <BookmarkIcon size={20} />
+          <span>
+            {viewMode === 'all' ? 'View Bookmarked' : 'View All Articles'}
+          </span>
+        </button>
+      </div>
       {pageLoading ? (
         <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
@@ -290,7 +359,30 @@ const ArticlesList: React.FC = () => {
                 </Link>
               ))}
             </div>
-          ) : null}
+          ) : (
+            <>
+            {viewMode === 'bookmarked' && articles.length === 0 && (
+            <div className="text-center py-12">
+              <BookmarkIcon size={48} className="mx-auto text-gray-400 mb-4" />
+              <h2 className="text-xl font-semibold text-gray-600">
+                No Bookmarked Articles
+              </h2>
+              <p className="text-gray-500 mt-2">
+                You haven't bookmarked any articles yet.
+              </p>
+              <button 
+                onClick={() => {
+                  setViewMode('all')
+                  fetchArticles();
+                }}
+                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              >
+                Browse Articles
+              </button>
+            </div>
+          )}
+          </>
+          )}
 
 
           {articles?.length > 0 && nextPageUrl && (
@@ -304,7 +396,7 @@ const ArticlesList: React.FC = () => {
                     Loading...
                   </span>
                 ) : (
-                  "Load More Videos"
+                  "Load More Articles"
                 )}
               </button>
           )}
