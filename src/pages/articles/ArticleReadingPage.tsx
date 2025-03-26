@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../context/authContext';
-import { BookmarkPlus, Share2, ThumbsUp, MessageSquare, BookmarkMinus } from 'lucide-react';
+import { BookmarkPlus,  ThumbsUp, BookmarkMinus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface Article {
