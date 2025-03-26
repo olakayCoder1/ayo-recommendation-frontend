@@ -17,7 +17,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const location = useLocation();
 
   const trigger = useRef<any>(null);
@@ -118,32 +118,41 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
             <ul className="mb-6 flex flex-col gap-1.5">
               {/* Regular navigation items */}
               <SideNavbarItem to="/home" icon={<GoHome />} label="Home" />
-              <SideNavbarItem to="/videos" icon={<MdOutlineVideoCameraBack />} label="Videos" />
-              <SideNavbarItem to="/articles" icon={<MdOutlineArticle />} label="Articles" />
-              <SideNavbarItem to="/quizes" icon={<MdOutlineArticle />} label="Quizzes" />
+              {!user?.is_admin ? (
+                <>
+                  <SideNavbarItem to="/videos" icon={<MdOutlineVideoCameraBack />} label="Videos" />
+                  <SideNavbarItem to="/articles" icon={<MdOutlineArticle />} label="Articles" />
+                  <SideNavbarItem to="/quizes" icon={<MdOutlineArticle />} label="Quizzes" />
+                </>
+              ): (
+                <>
+                  {/* Collapsible Video menu with subitems */}
+                  <SideNavbarItem 
+                    icon={<MdOutlineVideoCameraBack />} 
+                    label="Video M" 
+                    subItems={[
+                      { to: "/admin/video-list", label: "Video List" },
+                      { to: "/admin/video-upload", label: "Video Upload" }
+                    ]}
+                  />
+                  {/* Collapsible Quiz menu with subitems */}
+                  <SideNavbarItem 
+                    icon={<MdOutlineQuiz />} 
+                    label="Quiz M" 
+                    subItems={[
+                      { to: "/admin/quiz-list", label: "Quiz List" },
+                      { to: "/admin/quiz-create", label: "Create Quiz" },
+                      // { to: "/admin/quiz-results", label: "Quiz Results" }
+                    ]}
+                  />
+                  
+                  <SideNavbarItem to="/admin/students" icon={<MdOutlinePeopleAlt />} label="Students" />
+                </>
+              )}
+              
               
 
-              {/* Collapsible Video menu with subitems */}
-              <SideNavbarItem 
-                icon={<MdOutlineVideoCameraBack />} 
-                label="Video M" 
-                subItems={[
-                  { to: "/admin/video-list", label: "Video List" },
-                  { to: "/admin/video-upload", label: "Video Upload" }
-                ]}
-              />
-              {/* Collapsible Quiz menu with subitems */}
-              <SideNavbarItem 
-                icon={<MdOutlineQuiz />} 
-                label="Quiz M" 
-                subItems={[
-                  { to: "/admin/quiz-list", label: "Quiz List" },
-                  { to: "/admin/quiz-create", label: "Create Quiz" },
-                  // { to: "/admin/quiz-results", label: "Quiz Results" }
-                ]}
-              />
               
-              <SideNavbarItem to="/admin/students" icon={<MdOutlinePeopleAlt />} label="Students" />
               <SideNavbarItem to="/account" icon={<MdOutlineManageAccounts />} label="Account" />
   
               {/* Logout button */}

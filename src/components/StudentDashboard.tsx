@@ -282,7 +282,7 @@ const StudentDashboard: React.FC = () => {
       </div>
 
       {/* Mixed Recommendations Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {isLoading 
           ? Array(8).fill(0).map((_, index) => (
               <div key={index} className="bg-white rounded-lg shadow-md animate-pulse">

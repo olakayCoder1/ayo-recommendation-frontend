@@ -56,14 +56,14 @@ function App() {
           
 
           <Route path="/admin-----/*" element={<RoleBasedRoute element={<AdminPage />} requiredRole="admin" />} />
-          <Route path="/admin/quiz-list" element={<PrivateRoute element={<QuizListingPage />} />} />
-          <Route path="/admin/quiz-create" element={<PrivateRoute element={<AdminQuizUploadPage />} />} />
-          <Route path="/admin/quiz-edit/:id" element={<PrivateRoute element={<AdminQuizEditPage />} />} />
-          <Route path="/admin/quiz-results" element={<PrivateRoute element={<AdminQuizUploadPage />} />} />
-          <Route path="/admin/video-list" element={<PrivateRoute element={<VideoListingPage />} />} />
-          <Route path="/admin/video-upload" element={<PrivateRoute element={<VideoUploadPage />} />} />
+          <Route path="/admin/quiz-list" element={<RoleBasedRoute element={<QuizListingPage />} requiredRole="admin" />} />
+          <Route path="/admin/quiz-create" element={<RoleBasedRoute element={<AdminQuizUploadPage />} requiredRole="admin" />} />
+          <Route path="/admin/quiz-edit/:id" element={<RoleBasedRoute element={<AdminQuizEditPage />} requiredRole="admin"/>} />
+          <Route path="/admin/quiz-results" element={<RoleBasedRoute element={<AdminQuizUploadPage />} requiredRole="admin" />} />
+          <Route path="/admin/video-list" element={<RoleBasedRoute element={<VideoListingPage />} requiredRole="admin" />} />
+          <Route path="/admin/video-upload" element={<RoleBasedRoute element={<VideoUploadPage />} requiredRole="admin" />} />
 
-          <Route path="/admin/students" element={<PrivateRoute element={<StudentListingPage />} />} />
+          <Route path="/admin/students" element={<RoleBasedRoute element={<StudentListingPage />} requiredRole="admin" />} />
           
           {/* Unauthorized route */}
           <Route path="/unauthorized" element={<Unauthorized />} />
