@@ -150,9 +150,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 </>
               )}
               
-              
-
-              
               <SideNavbarItem to="/account" icon={<MdOutlineManageAccounts />} label="Account" />
   
               {/* Logout button */}

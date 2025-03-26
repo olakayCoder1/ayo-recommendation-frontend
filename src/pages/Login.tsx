@@ -4,25 +4,62 @@ import { Link, useNavigate } from 'react-router-dom';  // Import useNavigate
 import InputField from '../components/InputField';
 
 const Login: React.FC = () => {
-  const { login, setGlobalLoading, setGlobalLoadingText } = useAuth();
+  const { setGlobalLoading,setUser, fetchWithAuth,setAuthToken,setGlobalLoadingText } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();  // Initialize useNavigate
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const request_data ={
+      email:username,
+      password
+    }
     try {
       setGlobalLoadingText('Authenticating...')
       setGlobalLoading(true)
+      const data = await fetchWithAuth({
+        method: 'POST',
+        path: `/auth/login`,
+        body: request_data,
+      });
       
-      await login(username, password);
-      navigate('/home');
+      localStorage.setItem('tokens', JSON.stringify(data?.data?.tokens));
+      localStorage.setItem('user', JSON.stringify(data?.data?.user));
+      setUser(data?.data?.user);
+      setAuthToken(data?.data?.tokens);
+      console.log(data?.data?.user?.role)
+      console.log(data?.data?.user?.role)
+      console.log(data?.data?.user?.role)
+      console.log(data?.data?.user?.role)
+      navigate('/admin/home')
+      if(data?.data?.user?.role == 'admin'){
+        navigate('/admin/home')
+      }else if(data?.data?.user?.role == 'student'){
+        navigate('/home');
+      }  
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Error fetching user profile:', error);
     }finally{
       setGlobalLoading(false)
-      
     }
+    // try {
+    //   setGlobalLoadingText('Authenticating...')
+    //   setGlobalLoading(true)
+      
+    //   // const response:any = await login(username, password);
+    //   // if(response?.role == 'admin'){
+    //   //   navigate('/admin/dashboard')
+    //   // }else if(response?.role == 'student'){
+    //   //   navigate('/home');
+    //   // }        
+      
+    // } catch (error) {
+    //   console.error('Login failed:', error);
+    // }finally{
+    //   setGlobalLoading(false)
+      
+    // }
   };
 
   return (

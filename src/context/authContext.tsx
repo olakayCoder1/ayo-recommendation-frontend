@@ -34,7 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const BACKEND_URL = 'https://ayo-recommendation-backend.onrender.com/api/v1';
 
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(() => JSON.parse(localStorage.getItem('user') || 'null'));
   const [authToken, setAuthToken] = useState<any>(() => JSON.parse(localStorage.getItem('tokens') || 'null'));
   const [loading, setLoading] = useState(true);
   const [globalLoading, setGlobalLoading] = useState<any>(false);
@@ -86,10 +86,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       setAuthToken(data?.data?.tokens);
       localStorage.setItem('tokens', JSON.stringify(data?.data?.tokens));
+      localStorage.setItem('user', JSON.stringify(data?.data?.user));
       setUser(data?.data?.user);
-      
+      return data?.data?.user;
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      return null
     }
   };
 
@@ -251,7 +253,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Logout function
   const logout = () => {
     localStorage.removeItem('tokens');
+    localStorage.removeItem('user');
     setUser(null);
+    setAuthToken(null)
     displayNotification('success', 'Logged out successfully');
     window.location.pathname = '/'
   };

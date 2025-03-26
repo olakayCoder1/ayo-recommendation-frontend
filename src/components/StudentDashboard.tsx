@@ -216,7 +216,7 @@ const StudentDashboard: React.FC = () => {
     year: "Finalist"
   });
 
-  const { fetchWithAuth } = useAuth();
+  const { fetchWithAuth, user } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
   const [recommendations, setRecommendations] = useState<ContentRecommendation[]>([]);
@@ -278,7 +278,7 @@ const StudentDashboard: React.FC = () => {
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 mb-6 text-white">
         <h2 className="text-2xl font-bold mb-2">{getGreeting()}, {student.name}!</h2>
         <p className="opacity-90">{student.year} • {student.course}</p>
-        <p className="mt-2 text-sm">Your weekly learning progress is on track.</p>
+        <p className="mt-2 text-sm">Your weekly learning progress is on track. {user?.role}</p>
       </div>
 
       {/* Mixed Recommendations Grid */}
