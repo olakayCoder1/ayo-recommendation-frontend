@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Users, 
   Video, 
@@ -11,6 +11,8 @@ import {
   TrendingUp 
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useAuth } from '../../context/authContext';
+import { useNavigate } from 'react-router-dom';
 
 // Interfaces for data types
 interface AnalyticsSummary {
@@ -45,34 +47,36 @@ interface AnalyticsTimeSeriesData {
 }
 
 const AdminDashboard: React.FC = () => {
-  const [summary] = useState<AnalyticsSummary>({
+    const { fetchWithAuth } = useAuth();
+    const navigate = useNavigate()
+  const [summary, setSummary] = useState<AnalyticsSummary>({
     students: {
-      total: 1250,
-      newThisMonth: 75,
-      activeUsers: 1100
+      total: 0,
+      newThisMonth: 0,
+      activeUsers: 0
     },
     videos: {
-      total: 210,
-      totalViews: 125600,
-      averageRating: 4.5
+      total: 0,
+      totalViews: 0,
+      averageRating: 0
     },
     articles: {
-      total: 150,
-      totalLikes: 8750,
-      totalBookmarks: 3200
+      total: 0,
+      totalLikes: 0,
+      totalBookmarks: 0
     },
     quizzes: {
-      total: 45,
-      averageScore: 78.5,
-      highestScore: 98
+      total: 0,
+      averageScore: 0,
+      highestScore: 0
     }
   });
 
-  const [timeSeriesData] = useState<AnalyticsTimeSeriesData[]>([
-    { name: 'Jan', students: 1000, videos: 150, articles: 100, quizzes: 30 },
-    { name: 'Feb', students: 1100, videos: 170, articles: 120, quizzes: 35 },
-    { name: 'Mar', students: 1250, videos: 200, articles: 140, quizzes: 40 },
-    { name: 'Apr', students: 1350, videos: 210, articles: 150, quizzes: 45 }
+  const [timeSeriesData,setTimeSeriesData] = useState<AnalyticsTimeSeriesData[]>([
+    { name: 'Jan', students: 0, videos: 0, articles: 0, quizzes: 0 },
+    { name: 'Feb', students: 0, videos: 0, articles: 0, quizzes: 0 },
+    { name: 'Mar', students: 0, videos: 0, articles: 0, quizzes: 0 },
+    { name: 'Apr', students: 0, videos: 0, articles: 0, quizzes: 0 }
   ]);
 
   const StatCard = ({ 
@@ -103,6 +107,36 @@ const AdminDashboard: React.FC = () => {
       </div>
     </div>
   );
+
+  const fetchMainOverview = async () => {
+    try {
+      const response = await fetchWithAuth({
+        method: 'GET',
+        path: `/overview`,
+      });
+      
+      setSummary(response?.data);
+    } catch (err) {
+      console.error('Error fetching article:', err);
+    }
+  };
+  const fetchMainOverviewLastFourMonth = async () => {
+    try {
+      const response = await fetchWithAuth({
+        method: 'GET',
+        path: `/overview/last_4_months_overview`,
+      });
+      
+      setTimeSeriesData(response?.data);
+    } catch (err) {
+      console.error('Error fetching article:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchMainOverview()
+    fetchMainOverviewLastFourMonth()
+    }, []);
 
   return (
     <div className="bg-gray-50 min-h-screen p-6">
@@ -206,21 +240,21 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-4">
-            <button className="bg-blue-50 text-blue-600 py-2 rounded hover:bg-blue-100">
+            <button onClick={()=> navigate('/admin/video-upload')} className="bg-blue-50 text-blue-600 py-2 rounded hover:bg-blue-100">
               Add New Video
             </button>
-            <button className="bg-green-50 text-green-600 py-2 rounded hover:bg-green-100">
+            {/* <button onClick={()=> navigate('/admin/video-upload')}  className="bg-green-50 text-green-600 py-2 rounded hover:bg-green-100">
               Create Article
-            </button>
-            <button className="bg-red-50 text-red-600 py-2 rounded hover:bg-red-100">
+            </button> */}
+            <button onClick={()=> navigate('/admin/quiz-create')}  className="bg-red-50 text-red-600 py-2 rounded hover:bg-red-100">
               Generate Quiz
             </button>
-            <button className="bg-purple-50 text-purple-600 py-2 rounded hover:bg-purple-100">
+            <button onClick={()=> navigate('/admin/students')}  className="bg-purple-50 text-purple-600 py-2 rounded hover:bg-purple-100">
               Manage Users
             </button>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
+        {/* <div className="bg-white rounded-lg shadow p-4">
           <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
           <ul className="space-y-2">
             <li className="flex justify-between items-center border-b pb-2">
@@ -236,7 +270,7 @@ const AdminDashboard: React.FC = () => {
               <span className="text-sm text-gray-500">1d ago</span>
             </li>
           </ul>
-        </div>
+        </div> */}
       </div>
     </div>
   );
