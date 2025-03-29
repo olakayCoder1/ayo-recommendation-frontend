@@ -50,8 +50,8 @@ function App() {
           <Route path="/account/*" element={<PrivateRoute element={<ProfileManagementPage />} />} />
           <Route path="/articles" element={<PrivateRoute element={<ArticlesList />} />} />
           <Route path="/articles/:id" element={<PrivateRoute element={<ArticleReadingPage />} />} />
-          <Route path="/quizes" element={<PrivateRoute element={<RecommendedQuizzes />} />} />
-          <Route path="/quizes/:id" element={<PrivateRoute element={<QuizTakingPage />} />} />
+          <Route path="/quizzes" element={<PrivateRoute element={<RecommendedQuizzes />} />} />
+          <Route path="/quizzes/:id" element={<PrivateRoute element={<QuizTakingPage />} />} />
           
           
 

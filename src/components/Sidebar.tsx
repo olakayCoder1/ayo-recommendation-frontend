@@ -122,7 +122,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 <>
                   <SideNavbarItem to="/videos" icon={<MdOutlineVideoCameraBack />} label="Videos" />
                   <SideNavbarItem to="/articles" icon={<MdOutlineArticle />} label="Articles" />
-                  <SideNavbarItem to="/quizes" icon={<MdOutlineArticle />} label="Quizzes" />
+                  <SideNavbarItem to="/quizzes" icon={<MdOutlineArticle />} label="Quizzes" />
                 </>
               ): (
                 <>

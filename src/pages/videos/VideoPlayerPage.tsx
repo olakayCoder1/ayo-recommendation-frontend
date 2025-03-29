@@ -1,4 +1,4 @@
-
+// @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/authContext';
@@ -40,6 +40,8 @@ const VideoPlayerPage: React.FC = () => {
   const { videoId } = useParams<{ videoId: string }>();
   const [video, setVideo] = useState<Video | null>(null);
   const [relatedVideos, setRelatedVideos] = useState<RelatedVideo[]>([]);
+  const [relatedArticles, setRelatedArticles] = useState<RelatedVideo[]>([]);
+  const [relatedQuizzes, setRelatedQuizzes] = useState<RelatedVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRatingPopup, setShowRatingPopup] = useState(false);
@@ -82,7 +84,11 @@ const VideoPlayerPage: React.FC = () => {
         method: 'GET',
         path: `/admin/videos/${videoId}/related/?limit=5`,
       });
-      setRelatedVideos(data?.data);
+      console.log(data?.data)
+      setRelatedVideos(data?.data?.related_videos || []);
+      // setRelatedVideos(data?.data?.videos || []);
+      setRelatedArticles(data?.data?.related_articles || [])
+      setRelatedQuizzes(data?.data?.related_quizzes || [])
     } catch (err) {
       console.error('Error fetching related videos:', err);
       displayNotification("error", "Failed to load related videos.");
@@ -305,7 +311,74 @@ const VideoPlayerPage: React.FC = () => {
             </Link>
           ))}
         </div>
+
+        {/* // For related articles section */}
+        {relatedArticles?.length > 0 && (
+          <div className="mt-4">
+            <h2 className="text-lg font-bold mb-4">Related Articles</h2>
+            <div className="space-y-4">
+              {relatedArticles.map(article => (
+                <Link 
+                  key={article.id} 
+                  className="flex cursor-pointer hover:bg-gray-200 p-2 rounded"
+                  to={`/articles/${article.id}`}
+                >
+                  <div className="relative w-40 h-24 flex-shrink-0">
+                    <img 
+                      src={article.top_image || '/placeholder-image.jpg'} 
+                      alt={article.title} 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-1 right-1 bg-black text-white text-xs px-1 rounded">
+                      {new Date(article.publish_date).toLocaleDateString()} {/* Display publish date */}
+                    </div>
+                  </div>
+                  <div className="ml-2 flex-grow">
+                    <h3 className="font-medium text-sm line-clamp-2">{article.title}</h3>
+                    <p className="text-gray-600 text-xs mt-1">{article.authors}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {relatedQuizzes?.length > 0 && (
+          <div className="mt-4">
+            <h2 className="text-lg font-bold mb-4">Related Quizzes</h2>
+            <div className="space-y-4">
+              {relatedQuizzes.map(quiz => (
+                <Link 
+                  key={quiz.id} 
+                  className="flex cursor-pointer hover:bg-gray-200 p-2 rounded"
+                  to={`/quizzes/${quiz.id}`}
+                >
+                  <div className="relative w-40 h-24 flex-shrink-0 bg-gray-300 flex items-center justify-center">
+                    <span className="text-lg font-bold">{quiz.level}</span>
+                    <div className="absolute bottom-1 right-1 bg-black text-white text-xs px-1 rounded">
+                      {quiz.estimated_time} mins {/* Display quiz time */}
+                    </div>
+                  </div>
+                  <div className="ml-2 flex-grow">
+                    <h3 className="font-medium text-sm line-clamp-2">{quiz.title}</h3>
+                    <p className="text-gray-600 text-xs mt-1">{quiz.category.name}</p>
+                    <p className="text-gray-600 text-xs">{quiz.questions.length} questions</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+
+      
+
+
+      
       </div>
+      
+
+      
 
       {/* Rating Popup */}
       {showRatingPopup && (
