@@ -14,9 +14,9 @@ const Register: React.FC = () => {
     email: '',
     phone_number: '',
     current_year_level: '',
-    previous_year_performance: '',
+    // previous_year_performance: '',
     preferred_content: '',
-    study_preference: '',
+    // study_preference: '',
     password: '',
     confirmPassword: '',
   });
@@ -121,20 +121,6 @@ const Register: React.FC = () => {
           />
           <InputField
             type="select"
-            label="Previous Year Performance"
-            name="previous_year_performance"
-            placeholder=''
-            value={formData.previous_year_performance}
-            onChange={handleChange}
-            required
-            options={['First Class', '2:1', '2:2', 'Third Class']}
-          />
-        </div>
-
-        {/* Preferred Content and Study Preference */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <InputField
-            type="select"
             label="Preferred Content"
             name="preferred_content"
             placeholder=''
@@ -143,7 +129,22 @@ const Register: React.FC = () => {
             required
             options={['Video', 'Article', 'Quiz']}
           />
-          <InputField
+          
+        </div>
+
+        {/* Preferred Content and Study Preference */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {/* <InputField
+            type="select"
+            label="Previous Year Performance"
+            name="previous_year_performance"
+            placeholder=''
+            value={formData.previous_year_performance}
+            onChange={handleChange}
+            required
+            options={['First Class', '2:1', '2:2', 'Third Class']}
+          /> */}
+          {/* <InputField
             type="select"
             label="Study Preference"
             name="study_preference"
@@ -152,7 +153,7 @@ const Register: React.FC = () => {
             onChange={handleChange}
             required
             options={['Morning', 'Night']}
-          />
+          /> */}
         </div>
 
         {/* Password and Confirm Password with View Toggle */}
