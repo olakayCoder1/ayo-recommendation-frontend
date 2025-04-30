@@ -1,5 +1,5 @@
 import React, { useState, useEffect, FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { 
   Plus, FileText, File, Link as LinkIcon, 
   Edit, Trash2, Eye, Search, Filter 
@@ -28,7 +28,6 @@ interface FetchResponse {
 }
 
 const AdminArticlesList: React.FC = () => {
-  const navigate = useNavigate();
   const { fetchWithAuth, displayNotification } = useAuth();
 
   const [articles, setArticles] = useState<Article[]>([]);

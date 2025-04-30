@@ -1,7 +1,7 @@
-import React, { useState, useRef, ChangeEvent, FormEvent } from 'react';
+import React, { useState,  ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/authContext';
-import { Save, Upload, Link as LinkIcon, FileText, X } from 'lucide-react';
+import { Save, Upload, Link as LinkIcon, FileText } from 'lucide-react';
 
 type ContentType = 'written' | 'pdf' | 'external';
 
@@ -20,7 +20,7 @@ interface ArticleForm {
 const ArticleCreator: React.FC = () => {
   const navigate = useNavigate();
   const { fetchWithAuth, displayNotification } = useAuth();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [article, setArticle] = useState<ArticleForm>({
@@ -35,7 +35,7 @@ const ArticleCreator: React.FC = () => {
     top_image: null
   });
 
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  // const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const handleContentTypeChange = (e: ChangeEvent<HTMLInputElement>) => {
     setArticle({ ...article, content_type: e.target.value as ContentType });
@@ -46,17 +46,17 @@ const ArticleCreator: React.FC = () => {
     setArticle({ ...article, [name]: value });
   };
 
-  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      setArticle({ ...article, top_image: file });
-    }
-  };
+  // const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (file) {
+  //     const reader = new FileReader();
+  //     reader.onloadend = () => {
+  //       setPreviewImage(reader.result as string);
+  //     };
+  //     reader.readAsDataURL(file);
+  //     setArticle({ ...article, top_image: file });
+  //   }
+  // };
 
   const handlePdfUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,13 +65,13 @@ const ArticleCreator: React.FC = () => {
     }
   };
 
-  const clearImage = () => {
-    setPreviewImage(null);
-    setArticle({ ...article, top_image: null });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
+  // const clearImage = () => {
+  //   setPreviewImage(null);
+  //   setArticle({ ...article, top_image: null });
+  //   if (fileInputRef.current) {
+  //     fileInputRef.current.value = "";
+  //   }
+  // };
 
   const validateForm = (): boolean => {
     if (!article.title.trim()) {
