@@ -449,11 +449,14 @@ const ProfileManagementPage: React.FC = () => {
           ) : (
             <div className="flex flex-col md:flex-row">
               <div className="md:w-1/3 mb-6 md:mb-0">
-                <img
+                {/* <img
                   src={profile.avatar || thumbnail}
                   alt={getFullName()}
                   className="w-32 h-32 rounded-full"
-                />
+                /> */}
+                <div className="h-48 w-48 rounded-full bg-blue-500 text-white flex items-center justify-center text-5xl font-semibold mx-auto">
+                  {`${profile?.first_name[0]}${profile?.last_name[0]}`}
+                </div>
                 <div className="mt-4 text-sm text-gray-500">
                   Member since {formatDate(profile.created_at)}
                 </div>

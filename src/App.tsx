@@ -14,7 +14,7 @@ import Loader from './components/Loader';
 import AllVideosPage from './pages/videos/AllVideosPage';
 import VideoPlayerPage from './pages/videos/VideoPlayerPage';
 import ArticleReadingPage from './pages/articles/ArticleReadingPage';
-import ArticlesList from './pages/articles/ArticlesList';
+import ArticlesList from './pages/articles/ArticleDetail';
 import RecommendedQuizzes from './pages/quiz/RecommendedQuizzes';
 import QuizTakingPage from './pages/quiz/QuizTakingPage';
 import ProfileManagementPage from './pages/ProfileManagementPage';
@@ -26,6 +26,9 @@ import VideoListingPage from './pages/quiz/admin/VideoListingPage';
 import StudentListingPage from './pages/admin/students/StudentListingPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Home from './pages/Home';
+import AdminArticlesList from './pages/admin/articles/AdminArticlesList';
+import ArticleCreator from './pages/admin/articles/ArticleCreator';
+import ArticleEditor from './pages/admin/articles/ArticleEditor';
 
 function App() {
 
@@ -62,6 +65,9 @@ function App() {
           <Route path="/admin/quiz-results" element={<RoleBasedRoute element={<AdminQuizUploadPage />} requiredRole="admin" />} />
           <Route path="/admin/video-list" element={<RoleBasedRoute element={<VideoListingPage />} requiredRole="admin" />} />
           <Route path="/admin/video-upload" element={<RoleBasedRoute element={<VideoUploadPage />} requiredRole="admin" />} />
+          <Route path="/admin/article-list" element={<RoleBasedRoute element={<AdminArticlesList />} requiredRole="admin" />} />
+          <Route path="/admin/article-create" element={<RoleBasedRoute element={<ArticleCreator />} requiredRole="admin" />} />
+          <Route path="/admin/article-edit/:id" element={<RoleBasedRoute element={<ArticleEditor />} requiredRole="admin" />} />
 
           <Route path="/admin/students" element={<RoleBasedRoute element={<StudentListingPage />} requiredRole="admin" />} />
           

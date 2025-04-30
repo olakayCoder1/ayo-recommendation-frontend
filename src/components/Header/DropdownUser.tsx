@@ -22,9 +22,12 @@ const DropdownUser = () => {
           <span className="block text-xs">{user?.email} ({user?.is_active})</span>
         </span>
 
-        <span className="h-12 w-12 rounded-full">
+        {/* <span className="h-12 w-12 rounded-full">
           <img src={user?.profile_image || 'https://avatars.githubusercontent.com/u/95700260?s=400&u=8a038fc4fa00588887195b84026eb610c9213b4f&v=4'} alt="User" className="h-12 w-12 rounded-full" />
-        </span>
+        </span> */}
+        <div className="h-12 w-12  rounded-full bg-blue-500 text-white flex items-center justify-center text-xl font-semibold mx-auto">
+          {`${user?.first_name?.[0]}${user?.last_name?.[0]}`}
+        </div>
 
       </Link>
 

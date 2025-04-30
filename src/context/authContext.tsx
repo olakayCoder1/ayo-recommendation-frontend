@@ -184,6 +184,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let response;
     if (isFormData) {
+      const headers: Record<string, string> = {
+        // 'Content-Type': 'application/json',
+      };
       response = await fetch(url, { method, headers, body: body });
     } else {
       response = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });

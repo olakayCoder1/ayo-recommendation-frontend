@@ -1,37 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import avatar from '../../../assets/images/thumbnail-im.jpg';
+// import avatar from '../../../assets/images/thumbnail-im.jpg';
+import { useAuth } from '../../../context/authContext';
 
-// Types
+// Updated Types to match actual API response
 interface Student {
   id: string;
-  name: string;
   email: string;
-  grade: string;
-  department: string;
-  enrollmentDate: string;
-  status: 'Active' | 'Inactive' | 'On Leave';
-  gpa: number;
-  courses: string[];
-  advisor: {
-    name: string;
-    email: string;
-    avatar: string;
-  };
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  previous_year_performance: string | null;
+  preferred_content: string;
+  study_preference: string | null;
+  current_year_level: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-
-// interface ApiResponse {
-//   metadata: {
-//     count: number;
-//     is_filter: boolean;
-//     has_records: boolean;
-//     page_size: number;
-//     page: number;
-//     next: string | null;
-//     previous: string | null;
-//   };
-//   results: Student[];
-// }
+interface ApiResponse {
+  metadata: {
+    count: number;
+    is_filter: boolean;
+    has_records: boolean;
+    page_size: number;
+    page: number;
+    next: string | null;
+    previous: string | null;
+  };
+  results: Student[];
+}
 
 // Confirmation Modal Component
 const ConfirmationModal: React.FC<{
@@ -70,11 +68,11 @@ const ConfirmationModal: React.FC<{
   );
 };
 
-// Student View Modal Component
+// Student View Modal Component - Updated to match new Student interface
 const StudentViewModal: React.FC<{
   student: Student | null;
   closeModal: () => void;
-  onStatusChange: (studentId: string, newStatus: 'Active' | 'Inactive') => void;
+  onStatusChange: (studentId: string, newStatus: boolean) => void;
   onDeleteStudent: (studentId: string) => void;
 }> = ({ student, closeModal, onStatusChange, onDeleteStudent }) => {
   const [showStatusConfirmation, setShowStatusConfirmation] = useState(false);
@@ -83,8 +81,7 @@ const StudentViewModal: React.FC<{
   if (!student) return null;
 
   const handleStatusChange = () => {
-    const newStatus = student.status === 'Active' ? 'Inactive' : 'Active';
-    onStatusChange(student.id, newStatus);
+    onStatusChange(student.id, !student.is_active);
     setShowStatusConfirmation(false);
     closeModal();
   };
@@ -95,14 +92,15 @@ const StudentViewModal: React.FC<{
     closeModal();
   };
 
-  const isActive = student.status === 'Active';
+  const isActive = student.is_active;
+  const fullName = `${student.first_name} ${student.last_name}`;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex justify-between items-start">
-            <h2 className="text-2xl font-bold">{student.name}</h2>
+            <h2 className="text-2xl font-bold">{fullName}</h2>
             <button
               onClick={closeModal}
               className="text-gray-500 hover:text-gray-700 focus:outline-none"
@@ -115,19 +113,20 @@ const StudentViewModal: React.FC<{
 
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1">
-              <img 
+              {/* <img 
                 src={avatar} 
-                alt={student.name} 
+                alt={fullName} 
                 className="h-48 w-48 rounded-full mx-auto object-cover" 
-              />
+              /> */}
+              <div className="h-48 w-48 rounded-full bg-blue-500 text-white flex items-center justify-center text-5xl font-semibold mx-auto">
+                {`${student?.first_name[0]}${student?.last_name[0]}`}
+              </div>
               
               <div className="mt-4 text-center">
                 <span className={`px-3 py-1 inline-flex text-sm font-medium rounded-full 
-                  ${student.status === 'Active' ? 'bg-green-100 text-green-800' : 
-                    student.status === 'Inactive' ? 'bg-red-100 text-red-800' : 
-                    'bg-yellow-100 text-yellow-800'}`}
+                  ${isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
                 >
-                  {student.status}
+                  {isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
             </div>
@@ -142,45 +141,39 @@ const StudentViewModal: React.FC<{
                 </div>
                 
                 <div>
-                  <p className="text-sm text-gray-500">Department</p>
-                  <p className="font-medium">{student.department}</p>
+                  <p className="text-sm text-gray-500">Phone Number</p>
+                  <p className="font-medium">{student.phone_number}</p>
                 </div>
                 
                 <div>
-                  <p className="text-sm text-gray-500">Grade</p>
-                  <p className="font-medium">{student.grade}</p>
+                  <p className="text-sm text-gray-500">Year Level</p>
+                  <p className="font-medium">{student.current_year_level}</p>
                 </div>
                 
                 <div>
-                  <p className="text-sm text-gray-500">GPA</p>
-                  <p className="font-medium">{student.gpa.toFixed(2)}</p>
+                  <p className="text-sm text-gray-500">Preferred Content</p>
+                  <p className="font-medium">{student.preferred_content}</p>
                 </div>
                 
                 <div>
-                  <p className="text-sm text-gray-500">Enrollment Date</p>
-                  <p className="font-medium">{new Date(student.enrollmentDate).toLocaleDateString()}</p>
+                  <p className="text-sm text-gray-500">Registration Date</p>
+                  <p className="font-medium">{new Date(student.created_at).toLocaleDateString()}</p>
                 </div>
+
+                {student.study_preference && (
+                  <div>
+                    <p className="text-sm text-gray-500">Study Preference</p>
+                    <p className="font-medium">{student.study_preference}</p>
+                  </div>
+                )}
               </div>
 
-              <h3 className="text-lg font-medium border-b pb-2 mt-6 mb-4">Advisor</h3>
-              
-              <div className="flex items-center">
-                <img src={student.advisor.avatar} alt={student.advisor.name} className="h-10 w-10 rounded-full" />
-                <div className="ml-4">
-                  <p className="font-medium">{student.advisor.name}</p>
-                  <p className="text-sm text-gray-500">{student.advisor.email}</p>
-                </div>
-              </div>
-
-              <h3 className="text-lg font-medium border-b pb-2 mt-6 mb-4">Enrolled Courses</h3>
-              
-              <div className="flex flex-wrap gap-2">
-                {student.courses.map(course => (
-                  <span key={course} className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-sm">
-                    {course}
-                  </span>
-                ))}
-              </div>
+              {student.previous_year_performance && (
+                <>
+                  <h3 className="text-lg font-medium border-b pb-2 mt-6 mb-4">Performance</h3>
+                  <p className="font-medium">{student.previous_year_performance}</p>
+                </>
+              )}
             </div>
           </div>
 
@@ -191,12 +184,6 @@ const StudentViewModal: React.FC<{
             >
               Close
             </button>
-            {/* <Link
-              to={`/admin/student-edit/${student.id}`}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-            >
-              Edit Student
-            </Link> */}
             <button
               onClick={() => setShowStatusConfirmation(true)}
               className={`px-4 py-2 text-white rounded-md ${
@@ -220,8 +207,8 @@ const StudentViewModal: React.FC<{
         isOpen={showStatusConfirmation}
         title={isActive ? 'Disable Student Account' : 'Enable Student Account'}
         message={isActive 
-          ? `Are you sure you want to disable ${student.name}'s account? They will no longer be able to access the system.`
-          : `Are you sure you want to enable ${student.name}'s account? They will regain access to the system.`
+          ? `Are you sure you want to disable ${fullName}'s account? They will no longer be able to access the system.`
+          : `Are you sure you want to enable ${fullName}'s account? They will regain access to the system.`
         }
         confirmText={isActive ? 'Disable Account' : 'Enable Account'}
         cancelText="Cancel"
@@ -234,7 +221,7 @@ const StudentViewModal: React.FC<{
       <ConfirmationModal
         isOpen={showDeleteConfirmation}
         title="Delete Student Account"
-        message={`Are you sure you want to permanently delete ${student.name}'s account? This action cannot be undone.`}
+        message={`Are you sure you want to permanently delete ${fullName}'s account? This action cannot be undone.`}
         confirmText="Delete Account"
         cancelText="Cancel"
         confirmButtonClass="bg-red-600 hover:bg-red-700"
@@ -247,174 +234,71 @@ const StudentViewModal: React.FC<{
 
 const StudentListingPage: React.FC = () => {
   // State
+  const { fetchWithAuth, displayNotification } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState('');
-  const [gradeFilter, setGradeFilter] = useState<string>('');
+  const [yearLevelFilter, setYearLevelFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
-  const [departmentFilter, setDepartmentFilter] = useState<string>('');
-  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
-  const [availableCourses, setAvailableCourses] = useState<string[]>([]);
-  const [availableDepartments, setAvailableDepartments] = useState<string[]>([]);
+  const [contentPreferenceFilter, setContentPreferenceFilter] = useState<string>('');
+  const [availableYearLevels, setAvailableYearLevels] = useState<string[]>([]);
+  const [availableContentPreferences, setAvailableContentPreferences] = useState<string[]>([]);
   const [viewingStudent, setViewingStudent] = useState<Student | null>(null);
 
-  // Mock data - In a real application, this would come from an API
+  // Fetch students data
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockStudents: Student[] = [
-        {
-          id: '1',
-          name: 'John Smith',
-          email: 'john.smith@university.edu',
-          grade: 'Freshman',
-          department: 'Computer Science',
-          enrollmentDate: '2024-09-01T00:00:00Z',
-          status: 'Active',
-          gpa: 3.7,
-          courses: ['Introduction to Programming', 'Calculus I', 'English Composition'],
-          advisor: {
-            name: 'Dr. Emily Chen',
-            email: 'e.chen@university.edu',
-            avatar: avatar,
-          }
-        },
-        {
-          id: '2',
-          name: 'Maria Rodriguez',
-          email: 'maria.rodriguez@university.edu',
-          grade: 'Junior',
-          department: 'Biology',
-          enrollmentDate: '2022-09-01T00:00:00Z',
-          status: 'Active',
-          gpa: 3.9,
-          courses: ['Molecular Biology', 'Organic Chemistry', 'Statistics'],
-          advisor: {
-            name: 'Dr. James Wilson',
-            email: 'j.wilson@university.edu',
-            avatar: avatar,
-          }
-        },
-        {
-          id: '3',
-          name: 'David Johnson',
-          email: 'david.johnson@university.edu',
-          grade: 'Senior',
-          department: 'Business Administration',
-          enrollmentDate: '2021-09-01T00:00:00Z',
-          status: 'On Leave',
-          gpa: 3.2,
-          courses: ['Business Ethics', 'Finance', 'Marketing Strategy'],
-          advisor: {
-            name: 'Dr. Sarah Thompson',
-            email: 's.thompson@university.edu',
-            avatar: avatar,
-          }
-        },
-        {
-          id: '4',
-          name: 'Priya Patel',
-          email: 'priya.patel@university.edu',
-          grade: 'Sophomore',
-          department: 'Engineering',
-          enrollmentDate: '2023-09-01T00:00:00Z',
-          status: 'Active',
-          gpa: 3.8,
-          courses: ['Physics II', 'Calculus III', 'Engineering Principles'],
-          advisor: {
-            name: 'Dr. Robert Brown',
-            email: 'r.brown@university.edu',
-            avatar: avatar,
-          }
-        },
-        {
-          id: '5',
-          name: 'Thomas Lee',
-          email: 'thomas.lee@university.edu',
-          grade: 'Freshman',
-          department: 'Psychology',
-          enrollmentDate: '2024-09-01T00:00:00Z',
-          status: 'Active',
-          gpa: 3.5,
-          courses: ['Introduction to Psychology', 'Biology', 'Statistics'],
-          advisor: {
-            name: 'Dr. Lisa Garcia',
-            email: 'l.garcia@university.edu',
-            avatar: avatar,
-          }
-        },
-        {
-          id: '6',
-          name: 'Sophia Williams',
-          email: 'sophia.williams@university.edu',
-          grade: 'Junior',
-          department: 'Computer Science',
-          enrollmentDate: '2022-09-01T00:00:00Z',
-          status: 'Inactive',
-          gpa: 3.1,
-          courses: ['Data Structures', 'Artificial Intelligence', 'Computer Networks'],
-          advisor: {
-            name: 'Dr. Emily Chen',
-            email: 'e.chen@university.edu',
-            avatar: avatar,
-          }
-        },
-        {
-          id: '7',
-          name: 'Ahmed Hassan',
-          email: 'ahmed.hassan@university.edu',
-          grade: 'Senior',
-          department: 'History',
-          enrollmentDate: '2021-09-01T00:00:00Z',
-          status: 'Active',
-          gpa: 3.6,
-          courses: ['Modern World History', 'European History', 'Research Methods'],
-          advisor: {
-            name: 'Dr. Michael Davis',
-            email: 'm.davis@university.edu',
-            avatar: avatar,
-          }
-        },
-        {
-          id: '8',
-          name: 'Emma Clark',
-          email: 'emma.clark@university.edu',
-          grade: 'Sophomore',
-          department: 'Art & Design',
-          enrollmentDate: '2023-09-01T00:00:00Z',
-          status: 'On Leave',
-          gpa: 3.9,
-          courses: ['Drawing Fundamentals', 'Art History', 'Digital Design'],
-          advisor: {
-            name: 'Dr. Jessica Martin',
-            email: 'j.martin@university.edu',
-            avatar: avatar,
-          }
-        },
-      ];
-
-      setStudents(mockStudents);
-      setFilteredStudents(mockStudents);
-      setIsLoading(false);
-
-      // Extract all unique courses
-      const allCourses = Array.from(
-        new Set(
-          mockStudents.flatMap(student => student.courses)
-        )
-      );
-      setAvailableCourses(allCourses);
-
-      // Extract all unique departments
-      const allDepartments = Array.from(
-        new Set(
-          mockStudents.map(student => student.department)
-        )
-      );
-      setAvailableDepartments(allDepartments);
-    }, 1000);
+    fetchStudents();
   }, []);
+
+  // Method to fetch students
+  const fetchStudents = async (page: number = 1) => {
+    try {
+      setIsLoading(true);
+      const response = await fetchWithAuth({
+        method: 'GET',
+        path: `/admin/students?page=${page}&page_size=20`,
+      });
+      
+      const data: ApiResponse = response;
+      
+      if (page === 1) {
+        setStudents(data?.results || []);
+        setFilteredStudents(data?.results || []);
+      } else {
+        const updatedStudents = [...students, ...data?.results];
+        setStudents(updatedStudents);
+        setFilteredStudents(updatedStudents);
+      }
+      
+      setNextPageUrl(data.metadata.next);
+      setCurrentPage(data.metadata.page);
+      
+      // Extract all unique year levels
+      const allYearLevels = Array.from(
+        new Set(
+          data?.results.map(student => student.current_year_level).filter(Boolean) as string[]
+        )
+      );
+      setAvailableYearLevels(allYearLevels);
+
+      // Extract all unique content preferences
+      const allContentPreferences = Array.from(
+        new Set(
+          data?.results.map(student => student.preferred_content).filter(Boolean) as string[]
+        )
+      );
+      setAvailableContentPreferences(allContentPreferences);
+      
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Error fetching students:', err);
+      setIsLoading(false);
+      displayNotification('error', 'Failed to fetch students');
+    }
+  };
 
   // Apply filters
   useEffect(() => {
@@ -424,45 +308,29 @@ const StudentListingPage: React.FC = () => {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(student => 
-        student.name.toLowerCase().includes(term) || 
-        student.email.toLowerCase().includes(term) ||
-        student.department.toLowerCase().includes(term)
+        `${student.first_name} ${student.last_name}`.toLowerCase().includes(term) || 
+        student.email.toLowerCase().includes(term)
       );
     }
 
-    // Apply grade filter
-    if (gradeFilter) {
-      result = result.filter(student => student.grade === gradeFilter);
+    // Apply year level filter
+    if (yearLevelFilter) {
+      result = result.filter(student => student.current_year_level === yearLevelFilter);
     }
 
     // Apply status filter
-    if (statusFilter) {
-      result = result.filter(student => student.status === statusFilter);
+    if (statusFilter !== '') {
+      const isActive = statusFilter === 'Active';
+      result = result.filter(student => student.is_active === isActive);
     }
 
-    // Apply department filter
-    if (departmentFilter) {
-      result = result.filter(student => student.department === departmentFilter);
-    }
-
-    // Apply course filters
-    if (selectedCourses.length > 0) {
-      result = result.filter(student => 
-        selectedCourses.some(course => student.courses.includes(course))
-      );
+    // Apply content preference filter
+    if (contentPreferenceFilter) {
+      result = result.filter(student => student.preferred_content === contentPreferenceFilter);
     }
 
     setFilteredStudents(result);
-  }, [students, searchTerm, gradeFilter, statusFilter, departmentFilter, selectedCourses]);
-
-  // Handle course selection
-  const toggleCourse = (course: string) => {
-    setSelectedCourses(prev => 
-      prev.includes(course)
-        ? prev.filter(c => c !== course)
-        : [...prev, course]
-    );
-  };
+  }, [students, searchTerm, yearLevelFilter, statusFilter, contentPreferenceFilter]);
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -477,32 +345,53 @@ const StudentListingPage: React.FC = () => {
   // Clear all filters
   const clearFilters = () => {
     setSearchTerm('');
-    setGradeFilter('');
+    setYearLevelFilter('');
     setStatusFilter('');
-    setDepartmentFilter('');
-    setSelectedCourses([]);
+    setContentPreferenceFilter('');
   };
 
   // Handle student status change
-  const handleStatusChange = (studentId: string, newStatus: 'Active' | 'Inactive') => {
-    const updatedStudents = students.map(student => 
-      student.id === studentId 
-        ? { ...student, status: newStatus } 
-        : student
-    );
-    
-    setStudents(updatedStudents);
-    // In a real app, you would make an API call here to update the student's status
-    console.log(`Student ${studentId} status changed to ${newStatus}`);
+  const handleStatusChange = async (studentId: string, isActive: boolean) => {
+    try {
+      // In a real app, make API call to update student status
+      // await fetchWithAuth({
+      //   method: 'PATCH',
+      //   path: `/admin/students/${studentId}/`,
+      //   body: { is_active: isActive }
+      // });
+
+      // Update local state
+      const updatedStudents = students.map(student => 
+        student.id === studentId 
+          ? { ...student, is_active: isActive } 
+          : student
+      );
+      
+      setStudents(updatedStudents);
+      displayNotification('success', `Student status updated successfully`);
+    } catch (err) {
+      console.error('Error updating student status:', err);
+      displayNotification('error', 'Failed to update student status');
+    }
   };
 
   // Handle student deletion
-  const handleDeleteStudent = (studentId: string) => {
-    const updatedStudents = students.filter(student => student.id !== studentId);
-    
-    setStudents(updatedStudents);
-    // In a real app, you would make an API call here to delete the student
-    console.log(`Student ${studentId} deleted`);
+  const handleDeleteStudent = async (studentId: string) => {
+    try {
+      // In a real app, make API call to delete student
+      // await fetchWithAuth({
+      //   method: 'DELETE',
+      //   path: `/admin/students/${studentId}/`
+      // });
+
+      // Update local state
+      const updatedStudents = students.filter(student => student.id !== studentId);
+      setStudents(updatedStudents);
+      displayNotification('success', 'Student deleted successfully');
+    } catch (err) {
+      console.error('Error deleting student:', err);
+      displayNotification('error', 'Failed to delete student');
+    }
   };
 
   // Open student view modal
@@ -515,20 +404,22 @@ const StudentListingPage: React.FC = () => {
     setViewingStudent(null);
   };
 
+  // Load more students
+  const loadMoreStudents = () => {
+    if (nextPageUrl) {
+      fetchStudents(currentPage + 1);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Student Directory</h1>
+          <h1 className="text-3xl font-bold">Students</h1>
           <p className="text-gray-600 mt-1">Browse and filter student records</p>
         </div>
         <div className="mt-4 md:mt-0">
-          {/* <Link 
-            to="/admin/student-add" 
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-          >
-            Add New Student
-          </Link> */}
+          {/* Add button for adding new student if needed */}
         </div>
       </div>
 
@@ -542,7 +433,7 @@ const StudentListingPage: React.FC = () => {
             <input
               type="text"
               id="search"
-              placeholder="Search by name, email, or department"
+              placeholder="Search by name or email"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-md"
@@ -550,20 +441,19 @@ const StudentListingPage: React.FC = () => {
           </div>
 
           <div>
-            <label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-1">
-              Grade
+            <label htmlFor="yearLevel" className="block text-sm font-medium text-gray-700 mb-1">
+              Year Level
             </label>
             <select
-              id="grade"
-              value={gradeFilter}
-              onChange={(e) => setGradeFilter(e.target.value)}
+              id="yearLevel"
+              value={yearLevelFilter}
+              onChange={(e) => setYearLevelFilter(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-md"
             >
-              <option value="">All Grades</option>
-              <option value="Freshman">Freshman</option>
-              <option value="Sophomore">Sophomore</option>
-              <option value="Junior">Junior</option>
-              <option value="Senior">Senior</option>
+              <option value="">All Year Levels</option>
+              {availableYearLevels.map(level => (
+                <option key={level} value={level}>{level}</option>
+              ))}
             </select>
           </div>
 
@@ -580,47 +470,24 @@ const StudentListingPage: React.FC = () => {
               <option value="">All Statuses</option>
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
-              <option value="On Leave">On Leave</option>
             </select>
           </div>
 
           <div>
-            <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
-              Department
+            <label htmlFor="contentPreference" className="block text-sm font-medium text-gray-700 mb-1">
+              Content Preference
             </label>
             <select
-              id="department"
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
+              id="contentPreference"
+              value={contentPreferenceFilter}
+              onChange={(e) => setContentPreferenceFilter(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded-md"
             >
-              <option value="">All Departments</option>
-              {availableDepartments.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
+              <option value="">All Content Preferences</option>
+              {availableContentPreferences.map(preference => (
+                <option key={preference} value={preference}>{preference}</option>
               ))}
             </select>
-          </div>
-        </div>
-
-        {/* Course filter */}
-        <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Filter by Courses
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {availableCourses.map(course => (
-              <button
-                key={course}
-                onClick={() => toggleCourse(course)}
-                className={`px-3 py-1 rounded-full text-sm ${
-                  selectedCourses.includes(course)
-                    ? 'bg-indigo-100 text-indigo-800 border border-indigo-300'
-                    : 'bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200'
-                }`}
-              >
-                {course}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -654,19 +521,16 @@ const StudentListingPage: React.FC = () => {
                     Student
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                    Department
+                    Content Preference
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                    Grade
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                    GPA
+                    Year Level
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                     Status
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
-                    Enrollment
+                    Registration Date
                   </th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -678,46 +542,29 @@ const StudentListingPage: React.FC = () => {
                   <tr key={student.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
+                        {/* <div className="flex-shrink-0 h-10 w-10">
                           <img className="h-10 w-10 rounded-full" src={avatar} alt="" />
-                        </div>
+                        </div> */}
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                          <div className="text-sm font-medium text-gray-900">{student.first_name} {student.last_name}</div>
                           <div className="text-sm text-gray-500">{student.email}</div>
-                          <div className="mt-1 flex flex-wrap gap-1 sm:hidden">
-                            {student.courses.slice(0, 1).map(course => (
-                              <span key={course} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
-                                {course}
-                              </span>
-                            ))}
-                            {student.courses.length > 1 && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                                +{student.courses.length - 1}
-                              </span>
-                            )}
-                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                      <div className="text-sm text-gray-900">{student.department}</div>
+                      <div className="text-sm text-gray-900">{student.preferred_content}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                      <div className="text-sm text-gray-900">{student.grade}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
-                      {student.gpa.toFixed(1)}
+                      <div className="text-sm text-gray-900">{student.current_year_level}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${student.status === 'Active' ? 'bg-green-100 text-green-800' : 
-                          student.status === 'Inactive' ? 'bg-red-100 text-red-800' : 
-                          'bg-yellow-100 text-yellow-800'}`}>
-                        {student.status}
+                        ${student.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {student.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
-                      {formatDate(student.enrollmentDate)}
+                      {formatDate(student.created_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
@@ -726,18 +573,24 @@ const StudentListingPage: React.FC = () => {
                       >
                         View
                       </button>
-                      {/* <Link
-                        to={`/admin/student-edit/${student.id}`}
-                        className="text-gray-600 hover:text-gray-900"
-                      >
-                        Edit
-                      </Link> */}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          
+          {/* Load more button */}
+          {nextPageUrl && (
+            <div className="px-6 py-4 flex justify-center">
+              <button 
+                onClick={loadMoreStudents}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+              >
+                Load More
+              </button>
+            </div>
+          )}
         </div>
       )}
 

@@ -134,7 +134,15 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                       { to: "/admin/video-list", label: "All" },
                       { to: "/admin/video-upload", label: "Upload" }
                     ]}
-                  />
+                  /> 
+                  <SideNavbarItem 
+                  icon={<MdOutlineArticle />} 
+                  label="Articles" 
+                  subItems={[
+                    { to: "/admin/article-list", label: "All" },
+                    { to: "/admin/article-create", label: "Add" }
+                  ]}
+                />
                   {/* Collapsible Quiz menu with subitems */}
                   <SideNavbarItem 
                     icon={<MdOutlineQuiz />} 
