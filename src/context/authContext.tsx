@@ -229,6 +229,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
+    if(response.status === 204){
+      return {
+        detail:"Deletion successful",  
+        status: 204,  
+        message: "Deletion successful",
+        data : {
+          
+        }
+      }
+    }
+
     if (!response.ok) {
       handleErrorResponse(response);
     }
