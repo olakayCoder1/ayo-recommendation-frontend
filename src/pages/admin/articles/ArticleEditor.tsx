@@ -180,13 +180,14 @@ const ArticleEditor: React.FC = () => {
 
       await fetchWithAuth({
         method: 'PATCH',
-        path: `/admin/articles/${id}/edit/`,
+        path: `/admin/articles/${id}/`,
+        // path: `/admin/articles/${id}/edit/`,
         body: formData,
         isFormData: true,
       });
 
       displayNotification('success', 'Article updated successfully!');
-      navigate('/admin/articles');
+      // navigate('/admin/articles');
     } catch (error) {
       console.error('Error updating article:', error);
       displayNotification('error', 'Failed to update article. Please try again.');
