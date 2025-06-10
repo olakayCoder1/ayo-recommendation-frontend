@@ -45,7 +45,7 @@ const ArticleEditor: React.FC = () => {
         setIsLoading(true);
         const response = await fetchWithAuth({
           method: 'GET',
-          path: `/admin/articles/${id}/edit/`,
+          path: `/admin/articles/${id}`,
         });
 
         let formattedDate = '';
